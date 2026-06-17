@@ -1,4 +1,4 @@
-import type { Article, Category, LiveStreamResponse } from "../types/news";
+import type { Article, Category, LiveStreamResponse, WeatherData } from "../types/news";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1200&q=80";
@@ -169,6 +169,82 @@ const allArticles: Article[] = [
     tags: ["volleyball", "women in sports"],
     views: 8872,
   },
+  {
+    id: "11",
+    slug: "ph-stocks-rally-on-remittance-data",
+    title: "Philippine stocks rally on strong OFW remittance data",
+    excerpt:
+      "The benchmark index climbed past 7,400 as December remittances hit a record high.",
+    body: "<p>The Philippine Stock Exchange index surged 2.3% following the release of record OFW remittance figures for the holiday season.</p><p>Analysts attributed the rally to improved consumer spending outlook and steady foreign buying.</p>",
+    category: "BUSINESS",
+    author: authors[1],
+    thumbnail:
+      "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: hoursAgo(3),
+    tags: ["stocks", "economy", "ofw"],
+    views: 5210,
+  },
+  {
+    id: "12",
+    slug: "real-estate-demand-rises",
+    title: "Real estate demand surges as BPO sector expands in key cities",
+    excerpt:
+      "Office vacancy rates drop to a two-year low as outsourcing firms lease more space in Metro Manila and Cebu.",
+    body: "<p>Demand for office space in business districts has risen sharply, with BPO firms accounting for over 60% of new leases in Q1.</p><p>Industry experts project continued growth as more global companies set up regional hubs in the Philippines.</p>",
+    category: "BUSINESS",
+    author: authors[0],
+    thumbnail:
+      "https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: hoursAgo(8),
+    tags: ["real estate", "bpo", "economy"],
+    views: 4332,
+  },
+  {
+    id: "13",
+    slug: "edsa-busway-expansion",
+    title: "EDSA busway expansion to cut commute time by 30 minutes",
+    excerpt:
+      "The new dedicated lane stretches from Monumento to Ayala, with modern bus stops and real-time tracking.",
+    body: "<p>The Department of Transportation inaugurated the extended EDSA Busway, adding 12 new stations equipped with digital displays and contactless payment systems.</p><p>Commuters can expect reduced travel time and more frequent trips during peak hours.</p>",
+    category: "METRO",
+    author: authors[0],
+    thumbnail:
+      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: hoursAgo(6),
+    tags: ["transportation", "metro manila", "commute"],
+    views: 7120,
+    isBreaking: true,
+  },
+  {
+    id: "14",
+    slug: "manila-flood-control-upgrade",
+    title: "Manila completes P2B flood control project in six districts",
+    excerpt:
+      "New pumping stations and drainage canals aim to end perennial flooding in Tondo, Binondo, and Santa Cruz.",
+    body: "<p>The city government announced the completion of a major flood mitigation project, including four new pumping stations and 12 kilometers of upgraded drainage canals.</p><p>Residents in affected barangays reported noticeable improvements during the last heavy rainfall.</p>",
+    category: "METRO",
+    author: authors[1],
+    thumbnail:
+      "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: hoursAgo(12),
+    tags: ["infrastructure", "flood control", "manila"],
+    views: 6540,
+  },
+  {
+    id: "15",
+    slug: "nasa-ph-satellite-partnership",
+    title: "NASA partners with PH space agency for climate satellite launch",
+    excerpt:
+      "The joint satellite will track typhoon patterns and deforestation across Southeast Asia.",
+    body: "<p>The Philippine Space Agency signed an agreement with NASA to launch a climate monitoring satellite by 2027.</p><p>The satellite will provide real-time data on typhoon intensity, forest cover changes, and ocean temperatures critical for disaster preparedness.</p>",
+    category: "SCIENCE",
+    author: authors[0],
+    thumbnail:
+      "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: hoursAgo(16),
+    tags: ["space", "technology", "climate"],
+    views: 4890,
+  },
 ];
 
 function delay<T>(data: T): Promise<T> {
@@ -235,4 +311,46 @@ export async function getLiveStream(): Promise<LiveStreamResponse> {
       "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     isLive: true,
   });
+}
+
+// ============================================
+// Weather Integration
+// ============================================
+
+const mockWeather: WeatherData = {
+  current: {
+    temp: 31,
+    feelsLike: 34,
+    humidity: 72,
+    description: "scattered clouds",
+    icon: "https://openweathermap.org/img/wn/02d@2x.png",
+    city: "Surallah",
+  },
+  forecast: [
+    {
+      day: "Tomorrow",
+      high: 32,
+      low: 24,
+      icon: "https://openweathermap.org/img/wn/10d@2x.png",
+      description: "thunderstorm",
+    },
+    {
+      day: new Date(Date.now() + 2 * 86400000).toLocaleDateString("en-PH", { weekday: "short" }),
+      high: 30,
+      low: 23,
+      icon: "https://openweathermap.org/img/wn/04d@2x.png",
+      description: "overcast clouds",
+    },
+    {
+      day: new Date(Date.now() + 3 * 86400000).toLocaleDateString("en-PH", { weekday: "short" }),
+      high: 31,
+      low: 24,
+      icon: "https://openweathermap.org/img/wn/02d@2x.png",
+      description: "few clouds",
+    },
+  ],
+};
+
+export async function getWeather(): Promise<WeatherData> {
+  return delay(mockWeather);
 }

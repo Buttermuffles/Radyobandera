@@ -17,7 +17,7 @@ export function LiveBar({ audioUrl, items }: LiveBarProps) {
   }, [items]);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-slate-950/96 text-white backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#040b22] text-white backdrop-blur-xl">
       <div className="mx-auto flex min-w-0 max-w-7xl items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
         <button
           type="button"

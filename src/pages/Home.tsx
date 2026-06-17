@@ -4,7 +4,9 @@ import type { Article } from "../types/news";
 import { HeroCarousel } from "../components/news/HeroCarousel";
 import { SectionBlock } from "../components/news/SectionBlock";
 import { MostRead } from "../components/news/MostRead";
+import { MostReadCard } from "../components/news/MostReadCard";
 import { LivePlayer } from "../components/media/LivePlayer";
+import { WeatherWidget } from "../components/common/WeatherWidget";
 import { Skeleton } from "../components/ui/skeleton";
 
 interface HomeProps {
@@ -16,6 +18,9 @@ export function Home({ videoUrl, isLive }: HomeProps) {
   const [featured, setFeatured] = useState<Article[]>([]);
   const [nation, setNation] = useState<Article[]>([]);
   const [entertainment, setEntertainment] = useState<Article[]>([]);
+  const [business, setBusiness] = useState<Article[]>([]);
+  const [metro, setMetro] = useState<Article[]>([]);
+  const [science, setScience] = useState<Article[]>([]);
   const [mostRead, setMostRead] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,11 +29,17 @@ export function Home({ videoUrl, isLive }: HomeProps) {
       getArticles({ limit: 5 }),
       getArticles({ category: "NATION", limit: 4 }),
       getArticles({ category: "ENTERTAINMENT", limit: 4 }),
+      getArticles({ category: "BUSINESS", limit: 4 }),
+      getArticles({ category: "METRO", limit: 4 }),
+      getArticles({ category: "SCIENCE", limit: 4 }),
       getMostRead(24, 4),
-    ]).then(([top, nationNews, entertainmentNews, trending]) => {
+    ]).then(([top, nationNews, entertainmentNews, businessNews, metroNews, scienceNews, trending]) => {
       setFeatured(top);
       setNation(nationNews);
       setEntertainment(entertainmentNews);
+      setBusiness(businessNews);
+      setMetro(metroNews);
+      setScience(scienceNews);
       setMostRead(trending);
       setLoading(false);
     });
@@ -45,43 +56,36 @@ export function Home({ videoUrl, isLive }: HomeProps) {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-white/70 bg-white/80 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:rounded-[2rem] sm:p-5">
-        <div className="grid gap-5 lg:grid-cols-[1.8fr_1fr] lg:items-center">
-          <div className="space-y-2 sm:space-y-3">
-            <p className="inline-flex rounded-full bg-brand-red px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-[0.3em] text-white sm:px-3 sm:py-1 sm:text-[0.7rem]">
-              Breaking broadcast
-            </p>
-            <h1 className="max-w-3xl font-heading text-xl font-black leading-tight text-brand-dark sm:text-4xl md:text-5xl">
-              Radyo Bandera Surallah 98.1 FM delivers fast, local-first news with a stronger broadcast identity.
-            </h1>
-            <p className="max-w-2xl text-xs leading-6 text-slate-600 sm:text-base md:text-lg">
-              Live updates, verified reports, and a cleaner reading experience built for radio audiences on any device.
-            </p>
-          </div>
-          <div className="grid gap-2 rounded-xl bg-slate-950 p-3 text-white shadow-[0_16px_35px_rgba(15,23,42,0.18)] sm:gap-3 sm:rounded-[1.5rem] sm:p-5">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-brand-yellow sm:text-xs">Station status</p>
-            <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-              <div>
-                <p className="text-xs font-semibold text-slate-300 sm:text-sm">Live stream</p>
-                <p className="text-lg font-black text-white sm:text-2xl">{isLive ? "ON AIR" : "OFF AIR"}</p>
-              </div>
-              <div className={`h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3 ${isLive ? "bg-emerald-400" : "bg-slate-500"}`} />
-            </div>
-            <p className="text-xs leading-5 text-slate-300 sm:text-sm sm:leading-6">
-              Audio stream and headline ticker are pinned to the bottom rail for easy listening.
-            </p>
-          </div>
+      <section className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-[linear-gradient(135deg,_#0a1a4a_0%,_#07163e_50%,_#0d1f56_100%)] p-5 shadow-[0_18px_50px_rgba(8,24,79,0.25)] sm:rounded-[2rem] sm:p-7 md:p-10">
+        <div className="flex flex-col items-start gap-3 sm:gap-4">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-wider text-white/70 sm:text-[0.6rem]">
+            Surallah 98.1 FM
+          </span>
+          <h1 className="max-w-3xl font-heading text-2xl font-black leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
+            Radyo Bandera Surallah
+          </h1>
+          <p className="max-w-2xl text-sm leading-6 text-blue-200/80 sm:text-base md:text-lg">
+            Delivering fast, local-first news with a stronger broadcast identity.
+            Live updates, verified reports, and a cleaner reading experience
+            built for radio audiences on any device.
+          </p>
         </div>
       </section>
 
+      {/* Main content grid: single column on mobile/tablet, two-column on lg+ */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        {/* Primary content (all screen sizes) */}
         <div className="space-y-6">
           <HeroCarousel articles={featured} />
-          <SectionBlock title="NATION" articles={nation} columns={2} showMore />
-          <SectionBlock title="ENTERTAINMENT" articles={entertainment} columns={2} showMore />
+          <SectionBlock title="NATION" articles={nation} showMore />
+          <SectionBlock title="METRO" articles={metro} showMore />
+          <SectionBlock title="BUSINESS" articles={business} showMore />
+          <SectionBlock title="ENTERTAINMENT" articles={entertainment} showMore />
+          <SectionBlock title="SCIENCE & TECH" articles={science} showMore />
         </div>
 
-        <aside className="space-y-4">
+        {/* Desktop sidebar (lg+ only) */}
+        <aside className="hidden space-y-4 lg:block">
           <section className="rounded-xl border border-white/60 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:rounded-[1.5rem] sm:p-4">
             <div className="mb-2 flex items-center justify-between sm:mb-3">
               <h2 className="font-heading text-lg font-black text-brand-red sm:text-xl">WATCH LIVE</h2>
@@ -91,8 +95,14 @@ export function Home({ videoUrl, isLive }: HomeProps) {
             </div>
             <LivePlayer videoUrl={videoUrl} isLive={isLive} />
           </section>
+          <WeatherWidget />
           <MostRead articles={mostRead} />
         </aside>
+      </div>
+
+      {/* Mobile most-read card (<lg only) */}
+      <div className="lg:hidden">
+        <MostReadCard articles={mostRead} />
       </div>
     </div>
   );

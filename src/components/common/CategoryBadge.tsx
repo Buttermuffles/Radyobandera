@@ -8,6 +8,9 @@ const styles: Record<Category, string> = {
   SPORTS: "bg-emerald-700 text-white",
   LIFESTYLE: "bg-amber-700 text-white",
   ASIA: "bg-indigo-700 text-white",
+  BUSINESS: "bg-sky-700 text-white",
+  METRO: "bg-orange-700 text-white",
+  SCIENCE: "bg-teal-700 text-white",
 };
 
 interface CategoryBadgeProps {

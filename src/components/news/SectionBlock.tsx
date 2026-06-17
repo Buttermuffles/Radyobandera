@@ -13,22 +13,40 @@ export function SectionBlock({ title, articles, showMore = true }: SectionBlockP
 
   return (
     <section>
-      <header className="mb-2 flex items-center justify-between sm:mb-3">
-        <h2 className="font-heading text-lg font-black tracking-tight text-brand-blue sm:text-2xl">{title}</h2>
+      <header className="mb-2 flex items-center gap-3 sm:mb-3">
+        <h2 className="font-heading text-lg font-black tracking-tight text-brand-blue sm:text-2xl md:text-3xl">{title}</h2>
+        <div className="h-px flex-1 bg-gradient-to-r from-slate-300 to-transparent" />
         {showMore ? (
           <Link
             to={`/category/${title}`}
             className="font-ui whitespace-nowrap text-xs font-semibold uppercase tracking-widest text-brand-red hover:underline"
           >
-            See all
+            View all
           </Link>
         ) : null}
       </header>
 
       <div className="relative">
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scroll-smooth sm:-mx-5 sm:gap-4 sm:px-5">
+        {/* Mobile carousel: horizontal scroll with proper snap behavior */}
+        <div 
+          className="flex gap-4 overflow-x-auto scroll-smooth pb-2 sm:hidden"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
           {articles.map((article) => (
-            <div key={article.id} className="w-[44vw] min-w-[180px] max-w-[280px] flex-none snap-start sm:w-[220px] md:w-[260px]">
+            <div 
+              key={article.id} 
+              className="w-[calc(100vw-2rem)] min-w-[calc(100vw-2rem)] flex-none snap-start"
+              style={{ scrollSnapAlign: "start" }}
+            >
+              <NewsCard article={article} variant="compact" />
+            </div>
+          ))}
+        </div>
+
+        {/* Tablet/Desktop grid layout */}
+        <div className="hidden gap-4 sm:grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          {articles.map((article) => (
+            <div key={article.id}>
               <NewsCard article={article} variant="compact" />
             </div>
           ))}

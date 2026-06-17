@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="border-t border-white/60 bg-[linear-gradient(180deg,_#07163e_0%,_#040b22_100%)] px-4 py-10 text-center text-sm text-slate-300">
+    <footer className="border-t border-white/60 bg-[linear-gradient(180deg,_#07163e_0%,_#040b22_100%)] px-4 py-10 pb-20 text-center text-sm text-slate-300 sm:pb-20">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4">
         <img
           src="/LOGO.jpg"

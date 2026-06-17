@@ -10,6 +10,7 @@ import {
 import { Footer } from "./components/layout/Footer";
 import { Header } from "./components/layout/Header";
 import { LiveBar } from "./components/layout/LiveBar";
+import { LiveBarFAB } from "./components/layout/LiveBarFAB";
 import { AdBanner } from "./components/media/AdBanner";
 import { useBreakingNews } from "./hooks/useBreakingNews";
 import { useLiveStream } from "./hooks/useLiveStream";
@@ -17,6 +18,17 @@ import { Article } from "./pages/Article";
 import { Category } from "./pages/Category";
 import { Home } from "./pages/Home";
 import { Search } from "./pages/Search";
+import { ScrollToTop } from "./components/common/ScrollToTop";
+
+function ScrollToTopOnRouteChange() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function RouteTitle() {
   const location = useLocation();
@@ -35,7 +47,7 @@ function AppShell() {
   const { stream } = useLiveStream();
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(204,0,0,0.08),_transparent_30%),linear-gradient(180deg,_#fff_0%,_#f4f4f4_100%)] pb-16">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(204,0,0,0.08),_transparent_30%),linear-gradient(180deg,_#fff_0%,_#f4f4f4_100%)] pt-[72px] sm:pt-[80px]">
       <AdBanner />
       <Header
         onSearch={(query) => {
@@ -45,9 +57,10 @@ function AppShell() {
         }}
       />
 
+      <ScrollToTopOnRouteChange />
       <RouteTitle />
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-5">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:pb-5 md:pb-5 lg:pb-5">
         <Routes>
           <Route
             path="/"
@@ -61,7 +74,28 @@ function AppShell() {
       </main>
 
       <Footer />
-      <LiveBar audioUrl={stream?.audioUrl ?? ""} items={breaking} />
+      
+      {/* Desktop live bar (lg+) */}
+      <div className="hidden lg:block">
+        <LiveBar audioUrl={stream?.audioUrl ?? ""} items={breaking} />
+      </div>
+
+      {/* Mobile live bar FAB (<lg) */}
+      <div className="lg:hidden">
+        <LiveBarFAB 
+          isLive={stream?.isLive ?? false}
+          audioUrl={stream?.audioUrl ?? ""}
+          onWatchClick={() => {
+            const player = document.getElementById("live-player");
+            player?.scrollIntoView({ behavior: "smooth" });
+          }}
+          onListenClick={() => {
+            // Audio plays automatically when button clicked in FAB
+          }}
+        />
+      </div>
+
+      <ScrollToTop />
     </div>
   );
 }

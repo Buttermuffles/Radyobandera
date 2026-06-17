@@ -11,7 +11,10 @@ export type Category =
   | "WORLD"
   | "SPORTS"
   | "LIFESTYLE"
-  | "ASIA";
+  | "ASIA"
+  | "BUSINESS"
+  | "METRO"
+  | "SCIENCE";
 
 export interface Article {
   id: string;
@@ -33,4 +36,26 @@ export interface LiveStreamResponse {
   videoUrl: string;
   audioUrl: string;
   isLive: boolean;
+}
+
+export interface CurrentWeather {
+  temp: number;
+  feelsLike: number;
+  humidity: number;
+  description: string;
+  icon: string;
+  city: string;
+}
+
+export interface ForecastDay {
+  day: string;
+  high: number;
+  low: number;
+  icon: string;
+  description: string;
+}
+
+export interface WeatherData {
+  current: CurrentWeather;
+  forecast: ForecastDay[];
 }
