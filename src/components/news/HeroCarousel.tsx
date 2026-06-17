@@ -48,7 +48,7 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
   return (
     <section
       aria-label="Top stories carousel"
-      className="space-y-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:space-y-3 sm:rounded-[2rem] sm:p-4"
+      className="space-y-3 rounded-xl border border-white/70 bg-white/70 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:space-y-3 sm:rounded-[2rem] sm:p-4"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -66,15 +66,15 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
         <div className="space-x-2" aria-label="Carousel controls">
           <button
             type="button"
-            className="rounded-full border border-slate-300 bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:p-2"
+            className="rounded-full border border-slate-300 bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
             onClick={() => emblaApi?.scrollPrev()}
             aria-label="Previous slide"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
           <button
             type="button"
-            className="rounded-full border border-slate-300 bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:p-2"
+            className="rounded-full border border-slate-300 bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
             onClick={() => emblaApi?.scrollNext()}
             aria-label="Next slide"
           >
