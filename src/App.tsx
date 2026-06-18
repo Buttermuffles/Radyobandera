@@ -18,6 +18,7 @@ import { Article } from "./pages/Article";
 import { Category } from "./pages/Category";
 import { Home } from "./pages/Home";
 import { Search } from "./pages/Search";
+import { General } from "./pages/General";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 
 function ScrollToTopOnRouteChange() {
@@ -64,10 +65,11 @@ function AppShell() {
         <Routes>
           <Route
             path="/"
-            element={<Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} />}
+            element={<Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} />}
           />
           <Route path="/article/:slug" element={<Article />} />
           <Route path="/category/:category" element={<Category />} />
+          <Route path="/general" element={<General />} />
           <Route path="/search" element={<Search />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

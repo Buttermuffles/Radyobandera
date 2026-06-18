@@ -1,0 +1,30 @@
+name: Sync Facebook Posts to Supabase
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Runs every 5 minutes
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js dotenv
+
+      - name: Run sync script
+        env:
+          VITE_FACEBOOK_LOCAL_PAGE_ID: ${{ secrets.VITE_FACEBOOK_LOCAL_PAGE_ID }}
+          VITE_FACEBOOK_ACCESS_TOKEN: ${{ secrets.VITE_FACEBOOK_ACCESS_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+        run: node sync.js

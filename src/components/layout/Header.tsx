@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
-import type { Category } from "../../types/news";
 import { cn } from "../../lib/utils";
 
-const categories: Category[] = [
-  "NATION",
-  "ENTERTAINMENT",
-  "WORLD",
-  "SPORTS",
-  "LIFESTYLE",
-  "BUSINESS",
-  "METRO",
-  "SCIENCE",
-  "ASIA",
+const navItems = [
+  { name: "LOCAL", path: "/category/LOCAL" },
+  { name: "REGIONAL", path: "/category/REGIONAL" },
+  { name: "NATIONAL", path: "/category/NATIONAL" },
+  { name: "GENERAL", path: "/general" },
 ];
 
 interface HeaderProps {
@@ -57,8 +51,8 @@ export function Header({ onSearch }: HeaderProps) {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/60 bg-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl">
       {/* Mobile backdrop */}
       {mobileOpen && (
-        <div 
-          className="fixed inset-0 z-30 bg-black/40 sm:hidden" 
+        <div
+          className="fixed inset-0 z-30 bg-black/40 sm:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -93,10 +87,10 @@ export function Header({ onSearch }: HeaderProps) {
 
         {/* Navigation - Desktop */}
         <nav className="hidden gap-1 text-xs font-semibold sm:text-sm lg:col-span-1 lg:flex lg:items-center lg:justify-center">
-          {categories.map((category) => (
+          {navItems.map((item) => (
             <NavLink
-              key={category}
-              to={`/category/${category}`}
+              key={item.name}
+              to={item.path}
               className={({ isActive }) =>
                 cn(
                   "rounded px-2 py-1 text-brand-dark hover:bg-brand-gray hover:text-brand-red transition min-w-touch min-h-touch",
@@ -104,44 +98,56 @@ export function Header({ onSearch }: HeaderProps) {
                 )
               }
             >
-              {category}
+              {item.name}
             </NavLink>
           ))}
         </nav>
 
-        {/* Desktop search */}
-        <form
-          className="hidden items-center gap-2 lg:flex"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSearch(query.trim());
-            setQuery("");
-          }}
-        >
-          <label htmlFor="header-search" className="sr-only">
-            Search news
-          </label>
-          <input
-            id="header-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="w-44 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-brand-red focus:ring-2 focus:ring-brand-red/15"
-            placeholder="Search"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="rounded-full bg-brand-blue p-2 text-white shadow-md shadow-brand-blue/20 transition hover:translate-y-[-1px] hover:bg-brand-red min-w-touch min-h-touch flex items-center justify-center"
+        {/* Desktop actions (Search, weather/date) */}
+        <div className="hidden items-center gap-4 lg:flex">
+          <div className="text-right leading-tight">
+            <span className="block text-xs font-black text-brand-blue">{today}</span>
+            <span className="block text-[10px] font-bold text-brand-red">{weather}</span>
+          </div>
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSearch(query.trim());
+              setQuery("");
+            }}
           >
-            <Search className="h-4 w-4" />
-          </button>
-        </form>
+            <label htmlFor="header-search" className="sr-only">
+              Search news
+            </label>
+            <input
+              id="header-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="w-44 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-brand-red focus:ring-2 focus:ring-brand-red/15"
+              placeholder="Search"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="rounded-full bg-brand-blue p-2 text-white shadow-md shadow-brand-blue/20 transition hover:translate-y-[-1px] hover:bg-brand-red min-w-touch min-h-touch flex items-center justify-center"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Mobile menu modal */}
       {mobileOpen && (
         <nav className="fixed top-[60px] left-0 right-0 z-40 bg-white shadow-lg sm:hidden max-h-[calc(100vh-60px)] overflow-y-auto">
           <div className="divide-y divide-slate-200">
+            {/* Mobile weather and date */}
+            <div className="flex justify-between items-center px-4 py-2.5 bg-slate-50 text-xs font-bold text-slate-600">
+              <span>{today}</span>
+              <span className="text-brand-red">{weather}</span>
+            </div>
+
             {/* Mobile search */}
             <form
               className="sticky top-0 bg-white flex items-center gap-2 p-3 xs:p-4"
@@ -173,10 +179,10 @@ export function Header({ onSearch }: HeaderProps) {
 
             {/* Mobile categories */}
             <div className="space-y-0.5 px-3 xs:px-4 py-2 xs:py-3">
-              {categories.map((category) => (
+              {navItems.map((item) => (
                 <NavLink
-                  key={category}
-                  to={`/category/${category}`}
+                  key={item.name}
+                  to={item.path}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     cn(
@@ -185,7 +191,7 @@ export function Header({ onSearch }: HeaderProps) {
                     )
                   }
                 >
-                  {category}
+                  {item.name}
                 </NavLink>
               ))}
             </div>
@@ -193,12 +199,6 @@ export function Header({ onSearch }: HeaderProps) {
         </nav>
       )}
 
-      {/* Weather/Date badge */}
-      <div className="hidden absolute right-4 top-1/2 -translate-y-1/2 lg:flex items-center gap-2 text-xs font-semibold text-slate-600">
-        <span>{today}</span>
-        <span>·</span>
-        <span>{weather}</span>
-      </div>
     </header>
   );
 }

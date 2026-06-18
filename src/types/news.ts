@@ -6,15 +6,10 @@ export interface Author {
 }
 
 export type Category =
-  | "NATION"
-  | "ENTERTAINMENT"
-  | "WORLD"
-  | "SPORTS"
-  | "LIFESTYLE"
-  | "ASIA"
-  | "BUSINESS"
-  | "METRO"
-  | "SCIENCE";
+  | "LOCAL"
+  | "REGIONAL"
+  | "NATIONAL"
+  | "OTHER";
 
 export interface Article {
   id: string;
@@ -30,6 +25,7 @@ export interface Article {
   views: number;
   isBreaking?: boolean;
   hasVideo?: boolean;
+  facebookUrl?: string;
 }
 
 export interface LiveStreamResponse {

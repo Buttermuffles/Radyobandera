@@ -2,15 +2,10 @@ import type { Category } from "../../types/news";
 import { Badge } from "../ui/badge";
 
 const styles: Record<Category, string> = {
-  NATION: "bg-brand-red text-white",
-  ENTERTAINMENT: "bg-pink-600 text-white",
-  WORLD: "bg-brand-blue text-white",
-  SPORTS: "bg-emerald-700 text-white",
-  LIFESTYLE: "bg-amber-700 text-white",
-  ASIA: "bg-indigo-700 text-white",
-  BUSINESS: "bg-sky-700 text-white",
-  METRO: "bg-orange-700 text-white",
-  SCIENCE: "bg-teal-700 text-white",
+  LOCAL: "bg-brand-red text-white",
+  REGIONAL: "bg-brand-blue text-white",
+  NATIONAL: "bg-emerald-700 text-white",
+  OTHER: "bg-slate-500 text-white",
 };
 
 interface CategoryBadgeProps {
@@ -18,5 +13,5 @@ interface CategoryBadgeProps {
 }
 
 export function CategoryBadge({ category }: CategoryBadgeProps) {
-  return <Badge className={styles[category]}>{category}</Badge>;
+  return <Badge className={styles[category]}>{category === "OTHER" ? "GENERAL" : category}</Badge>;
 }
