@@ -37,6 +37,10 @@ export function NewsCard({ article, variant }: NewsCardProps) {
             alt={article.title}
             className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            width="320"
+            height="180"
           />
           <div className="absolute bottom-1 left-1 xs:bottom-2 xs:left-2">
             <CategoryBadge category={article.category} />
@@ -71,6 +75,10 @@ export function NewsCard({ article, variant }: NewsCardProps) {
             "xs:h-32 xs:w-32 xs:flex-none sm:h-40 sm:w-40"
           )}
           loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          width="160"
+          height="160"
         />
         <CardContent className="space-y-2 flex-1 min-w-0">
           <CategoryBadge category={article.category} />
@@ -109,6 +117,10 @@ export function NewsCard({ article, variant }: NewsCardProps) {
           imageClass,
         )}
         loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        width={isHero ? 800 : 400}
+        height={isHero ? 450 : 260}
       />
       <CardContent
         className={cn(

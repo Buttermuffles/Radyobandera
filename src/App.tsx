@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -7,6 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { Footer } from "./components/layout/Footer";
 import { Header } from "./components/layout/Header";
 import { LiveBar } from "./components/layout/LiveBar";
@@ -14,12 +15,23 @@ import { LiveBarFAB } from "./components/layout/LiveBarFAB";
 import { AdBanner } from "./components/media/AdBanner";
 import { useBreakingNews } from "./hooks/useBreakingNews";
 import { useLiveStream } from "./hooks/useLiveStream";
-import { Article } from "./pages/Article";
-import { Category } from "./pages/Category";
-import { Home } from "./pages/Home";
-import { Search } from "./pages/Search";
-import { General } from "./pages/General";
 import { ScrollToTop } from "./components/common/ScrollToTop";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { SEO } from "./components/common/SEO";
+
+const Article = lazy(() => import("./pages/Article").then((m) => ({ default: m.Article })));
+const Category = lazy(() => import("./pages/Category").then((m) => ({ default: m.Category })));
+const Home = lazy(() => import("./pages/Home").then((m) => ({ default: m.Home })));
+const Search = lazy(() => import("./pages/Search").then((m) => ({ default: m.Search })));
+const General = lazy(() => import("./pages/General").then((m) => ({ default: m.General })));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-red border-t-transparent" />
+    </div>
+  );
+}
 
 function ScrollToTopOnRouteChange() {
   const { pathname } = useLocation();
@@ -31,15 +43,11 @@ function ScrollToTopOnRouteChange() {
   return null;
 }
 
-function RouteTitle() {
+function RouteMeta() {
   const location = useLocation();
+  const path = location.pathname === "/" ? "Top Stories" : location.pathname.replace("/", "").replace("-", " ");
 
-  useEffect(() => {
-    const page = location.pathname === "/" ? "Top Stories" : location.pathname.replace("/", "");
-    document.title = `Radyo Bandera Surallah 98.1 FM | ${page}`;
-  }, [location.pathname]);
-
-  return null;
+  return <SEO title={path === "Top Stories" ? undefined : path} />;
 }
 
 function AppShell() {
@@ -59,41 +67,71 @@ function AppShell() {
       />
 
       <ScrollToTopOnRouteChange />
-      <RouteTitle />
+      <RouteMeta />
 
       <main className="mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:pb-5 md:pb-5 lg:pb-5">
-        <Routes>
-          <Route
-            path="/"
-            element={<Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} />}
-          />
-          <Route path="/article/:slug" element={<Article />} />
-          <Route path="/category/:category" element={<Category />} />
-          <Route path="/general" element={<General />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ErrorBoundary>
+                  <Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/article/:slug"
+              element={
+                <ErrorBoundary>
+                  <Article />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/category/:category"
+              element={
+                <ErrorBoundary>
+                  <Category />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/general"
+              element={
+                <ErrorBoundary>
+                  <General />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <ErrorBoundary>
+                  <Search />
+                </ErrorBoundary>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <Footer />
-      
-      {/* Desktop live bar (lg+) */}
+
       <div className="hidden lg:block">
         <LiveBar audioUrl={stream?.audioUrl ?? ""} items={breaking} />
       </div>
 
-      {/* Mobile live bar FAB (<lg) */}
       <div className="lg:hidden">
-        <LiveBarFAB 
+        <LiveBarFAB
           isLive={stream?.isLive ?? false}
           audioUrl={stream?.audioUrl ?? ""}
           onWatchClick={() => {
             const player = document.getElementById("live-player");
             player?.scrollIntoView({ behavior: "smooth" });
           }}
-          onListenClick={() => {
-            // Audio plays automatically when button clicked in FAB
-          }}
+          onListenClick={() => {}}
         />
       </div>
 
@@ -104,9 +142,11 @@ function AppShell() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppShell />
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

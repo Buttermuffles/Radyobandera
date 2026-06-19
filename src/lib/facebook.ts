@@ -1,15 +1,17 @@
 import type { Article, Category } from "../types/news";
-import { supabase } from "./supabase";
-
-/**
- * Facebook Graph API Integration for News Aggregation
- * This module handles fetching news content from Facebook pages and feeds
- */
 
 const API_VERSION = import.meta.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v19.0";
 const ACCESS_TOKEN = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
 const APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 const USE_FACEBOOK_API = import.meta.env.VITE_USE_FACEBOOK_API === "true";
+
+interface FacebookAttachment {
+  media_type?: string;
+  media?: { image?: { src: string; width?: number; height?: number } };
+  target?: { id?: string; url?: string };
+  type?: string;
+  url?: string;
+}
 
 interface FacebookPost {
   id: string;
@@ -25,6 +27,7 @@ interface FacebookPost {
   shares?: { count: number };
   likes?: { data: Array<{ name: string }> };
   comments?: { data: Array<{ message: string }> };
+  attachments?: { data: FacebookAttachment[] };
 }
 
 interface FacebookPageInfo {
@@ -41,23 +44,11 @@ interface FacebookPageInfo {
   };
 }
 
-/**
- * Fetch posts from a specific Facebook page
- * @param pageId - Facebook page ID
- * @param limit - Number of posts to fetch
- */
-// Cache the page access token — use a promise singleton to avoid race conditions
 let cachedPageToken: string | null = null;
 let tokenFetchPromise: Promise<string> | null = null;
 
-/**
- * Exchange the User Access Token for a Page Access Token.
- * Uses a promise singleton so multiple simultaneous callers share one request.
- */
 async function getPageAccessToken(pageId: string): Promise<string> {
   if (cachedPageToken) return cachedPageToken;
-
-  // If a fetch is already in-flight, wait for it instead of firing another
   if (tokenFetchPromise) return tokenFetchPromise;
 
   tokenFetchPromise = (async () => {
@@ -89,12 +80,6 @@ async function getPageAccessToken(pageId: string): Promise<string> {
   return tokenFetchPromise;
 }
 
-// Cache posts to avoid hitting rate limits (especially when Home.tsx makes 5 concurrent requests)
-let cachedPosts: FacebookPost[] | null = null;
-let postsFetchPromise: Promise<FacebookPost[]> | null = null;
-let lastPostsFetch = 0;
-const CACHE_TTL = 60 * 1000; // 60 seconds
-
 export async function getPagePosts(pageId: string, limit = 10): Promise<FacebookPost[]> {
   if (!ACCESS_TOKEN) {
     throw new Error("Facebook access token is not configured.");
@@ -103,65 +88,26 @@ export async function getPagePosts(pageId: string, limit = 10): Promise<Facebook
     throw new Error("Facebook page ID is not configured or still a placeholder.");
   }
 
-  let rawPosts: FacebookPost[] = [];
+  const pageToken = await getPageAccessToken(pageId);
+  const url = `https://graph.facebook.com/${API_VERSION}/${pageId}/posts`;
+  const params = new URLSearchParams({
+    fields: "id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{media_type,media,url}",
+    access_token: pageToken,
+    limit: "60",
+  });
 
-  // Use cached posts if still valid
-  if (cachedPosts && Date.now() - lastPostsFetch < CACHE_TTL) {
-    rawPosts = cachedPosts;
-  } else {
-    // If a fetch is already happening, wait for it
-    if (!postsFetchPromise) {
-      postsFetchPromise = (async () => {
-        try {
-          // 1. Try to fetch from Supabase (Middleman Cache) first if configured
-          if (supabase) {
-            const { data, error } = await supabase
-              .from('facebook_cache')
-              .select('data')
-              .eq('id', 1)
-              .single();
-
-            if (!error && data && data.data) {
-              cachedPosts = data.data;
-              lastPostsFetch = Date.now();
-              postsFetchPromise = null;
-              return cachedPosts!;
-            }
-          }
-
-          // 2. Fallback to Facebook API if Supabase is not configured or failed
-          const pageToken = await getPageAccessToken(pageId);
-          const url = `https://graph.facebook.com/${API_VERSION}/${pageId}/posts`;
-          const params = new URLSearchParams({
-            fields: "id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{media_type,media,url}",
-            access_token: pageToken,
-            limit: "60", // Fetch enough to cache for all categories
-          });
-
-          const response = await fetch(`${url}?${params}`);
-          if (!response.ok) {
-            throw new Error(`Facebook API error: ${response.status} ${response.statusText}`);
-          }
-
-          const data = await response.json();
-          if (data.error) {
-            throw new Error(`Facebook API error: ${data.error.message}`);
-          }
-
-          cachedPosts = data.data || [];
-          lastPostsFetch = Date.now();
-          postsFetchPromise = null;
-          return cachedPosts!;
-        } catch (err) {
-          postsFetchPromise = null;
-          throw err;
-        }
-      })();
-    }
-    rawPosts = await postsFetchPromise;
+  const response = await fetch(`${url}?${params}`);
+  if (!response.ok) {
+    throw new Error(`Facebook API error: ${response.status} ${response.statusText}`);
   }
 
-  // Filter to only include actual news posts (has message) and exclude status updates & shared posts
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`Facebook API error: ${data.error.message}`);
+  }
+
+  const rawPosts: FacebookPost[] = data.data || [];
+
   const newsPosts = rawPosts.filter((post) => {
     if (!post.message || post.message.trim() === "") return false;
     if (post.status_type === "shared_story") return false;
@@ -182,14 +128,8 @@ export async function getPagePosts(pageId: string, limit = 10): Promise<Facebook
   return newsPosts.slice(0, limit);
 }
 
-/**
- * Fetch page information
- * @param pageId - Facebook page ID
- */
 export async function getPageInfo(pageId: string): Promise<FacebookPageInfo | null> {
-  if (!USE_FACEBOOK_API || !ACCESS_TOKEN) {
-    return null;
-  }
+  if (!USE_FACEBOOK_API || !ACCESS_TOKEN) return null;
 
   try {
     const url = `https://graph.facebook.com/${API_VERSION}/${pageId}`;
@@ -202,7 +142,6 @@ export async function getPageInfo(pageId: string): Promise<FacebookPageInfo | nu
     if (!response.ok) {
       throw new Error(`Facebook API error: ${response.statusText}`);
     }
-
     return await response.json();
   } catch (error) {
     console.error("Error fetching Facebook page info:", error);
@@ -210,15 +149,6 @@ export async function getPageInfo(pageId: string): Promise<FacebookPageInfo | nu
   }
 }
 
-/**
- * Convert Facebook post to Article format
- * @param post - Facebook post object
- * @param category - News category
- * @param author - Author information
- */
-/**
- * Detect news category from post hashtags
- */
 export function detectCategory(message: string): Category {
   const lower = message.toLowerCase();
   if (lower.includes("#local")) return "LOCAL";
@@ -227,12 +157,6 @@ export function detectCategory(message: string): Category {
   return "OTHER";
 }
 
-/**
- * Convert Facebook post to Article format
- * @param post - Facebook post object
- * @param category - News category
- * @param author - Author information
- */
 export function convertPostToArticle(
   post: FacebookPost,
   category: string,
@@ -241,15 +165,27 @@ export function convertPostToArticle(
   const content = post.message || post.story || "";
   const [excerpt, ...bodyParts] = content.split("\n");
 
+  const images: string[] = [];
+  if (post.full_picture) images.push(post.full_picture);
+  if (post.attachments?.data) {
+    for (const att of post.attachments.data) {
+      const src = att.media?.image?.src;
+      if (src && !images.includes(src)) {
+        images.push(src);
+      }
+    }
+  }
+
   return {
     id: post.id,
     slug: post.id.replace("_", "-"),
     title: excerpt.substring(0, 100) || "Untitled",
     excerpt: excerpt.substring(0, 160),
     body: `<p>${bodyParts.join("</p><p>")}</p>`,
-    category: category as any,
+    category: category as Category,
     author,
     thumbnail: post.full_picture || post.picture || "",
+    images: images.length > 1 ? images : undefined,
     publishedAt: post.created_time,
     tags: extractHashtags(content),
     views: post.likes?.data?.length || 0,
@@ -258,9 +194,6 @@ export function convertPostToArticle(
   };
 }
 
-/**
- * Fetch a single post by ID and convert it
- */
 export async function getPostById(postId: string): Promise<FacebookPost | null> {
   if (!ACCESS_TOKEN) return null;
 
@@ -278,7 +211,6 @@ export async function getPostById(postId: string): Promise<FacebookPost | null> 
     if (!response.ok) {
       throw new Error(`Facebook API error: ${response.statusText}`);
     }
-
     return await response.json();
   } catch (error) {
     console.error("Error fetching single post by ID:", error);
@@ -286,33 +218,17 @@ export async function getPostById(postId: string): Promise<FacebookPost | null> 
   }
 }
 
-/**
- * Extract hashtags from Facebook post content
- */
 function extractHashtags(text: string): string[] {
   const hashtagRegex = /#(\w+)/g;
   const matches = text.match(hashtagRegex) || [];
   return matches.map((tag) => tag.substring(1));
 }
 
-/**
- * Check if a post contains a specific hashtag (case-insensitive)
- * @param post - Facebook post object
- * @param hashtag - Hashtag to look for (without the # symbol)
- */
 function postHasHashtag(post: FacebookPost, hashtag: string): boolean {
   const content = (post.message || post.story || "").toLowerCase();
   return content.includes(`#${hashtag.toLowerCase()}`);
 }
 
-/**
- * Fetch posts from a specific Facebook page and filter by hashtag.
- * Use this when one page hosts all categories, differentiated by hashtags.
- * @param pageId - Facebook page ID
- * @param hashtag - Hashtag to filter by (without the # symbol, e.g. "Local")
- * @param limit - Max number of matching posts to return
- * @param fetchLimit - How many posts to pull from the API before filtering (fetch more to ensure enough matches)
- */
 export async function getPagePostsByHashtag(
   pageId: string,
   hashtag: string,
@@ -324,11 +240,6 @@ export async function getPagePostsByHashtag(
   return filtered.slice(0, limit);
 }
 
-/**
- * Search for public posts by keywords
- * @param query - Search query
- * @param limit - Number of results
- */
 export async function searchPosts(query: string, limit = 10): Promise<FacebookPost[]> {
   if (!USE_FACEBOOK_API || !ACCESS_TOKEN || ACCESS_TOKEN.startsWith("your_")) {
     throw new Error("Facebook API not configured or using placeholder credentials.");
@@ -360,13 +271,8 @@ export async function searchPosts(query: string, limit = 10): Promise<FacebookPo
   }
 }
 
-/**
- * Get trending topics from Facebook
- */
 export async function getTrendingTopics(_country = "PH", limit = 10): Promise<string[]> {
-  if (!USE_FACEBOOK_API || !ACCESS_TOKEN) {
-    return [];
-  }
+  if (!USE_FACEBOOK_API || !ACCESS_TOKEN) return [];
 
   try {
     const url = `https://graph.facebook.com/${API_VERSION}/me/feed`;
@@ -384,7 +290,6 @@ export async function getTrendingTopics(_country = "PH", limit = 10): Promise<st
     const data = await response.json();
     const posts = data.data || [];
 
-    // Extract topics from stories
     const topics = new Set<string>();
     posts.forEach((post: any) => {
       const text = post.story || "";
@@ -403,10 +308,6 @@ export async function getTrendingTopics(_country = "PH", limit = 10): Promise<st
   }
 }
 
-/**
- * Initialize Facebook SDK
- * Call this once on app startup
- */
 export function initializeFacebook(): void {
   if (!USE_FACEBOOK_API || !APP_ID) {
     console.log("Facebook SDK initialization skipped");
@@ -421,7 +322,6 @@ export function initializeFacebook(): void {
     });
   };
 
-  // Load the Facebook SDK
   const script = document.createElement("script");
   script.async = true;
   script.defer = true;

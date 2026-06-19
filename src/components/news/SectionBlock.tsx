@@ -28,13 +28,13 @@ export function SectionBlock({ title, articles, showMore = true }: SectionBlockP
 
       <div className="relative">
         {/* Mobile carousel: horizontal scroll with proper snap behavior */}
-        <div 
+        <div
           className="flex gap-4 overflow-x-auto scroll-smooth pb-2 sm:hidden"
           style={{ scrollSnapType: "x mandatory" }}
         >
           {articles.map((article) => (
-            <div 
-              key={article.id} 
+            <div
+              key={article.id}
               className="w-[calc(100vw-2rem)] min-w-[calc(100vw-2rem)] flex-none snap-start"
               style={{ scrollSnapAlign: "start" }}
             >

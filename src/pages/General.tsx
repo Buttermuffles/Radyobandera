@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Skeleton } from "boneyard-js/react";
 import { getArticles } from "../lib/api";
 import type { Article } from "../types/news";
 import { DateStamp } from "../components/common/DateStamp";
 import { readingMinutes } from "../lib/utils";
+import { CardGridSkeleton } from "../components/skeletons/CardGridSkeleton";
+import { SEO } from "../components/common/SEO";
 import { Card } from "../components/ui/card";
 import { Globe, BookOpen } from "lucide-react";
 
@@ -19,20 +22,9 @@ export function General() {
     });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-10 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-80 animate-pulse rounded-xl bg-slate-200" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <Skeleton name="general" loading={loading} fallback={<CardGridSkeleton header={false} />}>
+      <SEO title="General News" description="Latest stories, public interest posts, and broadcast announcements from Radyo Bandera Surallah." />
     <section className="space-y-8">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-lg sm:p-10">
@@ -69,6 +61,9 @@ export function General() {
                   alt={article.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
+                  decoding="async"
+                  width="400"
+                  height="250"
                 />
               </div>
               <div className="flex flex-1 flex-col p-4 space-y-3">
@@ -102,5 +97,6 @@ export function General() {
         </div>
       )}
     </section>
+    </Skeleton>
   );
 }

@@ -26,6 +26,7 @@ export interface Article {
   isBreaking?: boolean;
   hasVideo?: boolean;
   facebookUrl?: string;
+  images?: string[];
 }
 
 export interface LiveStreamResponse {
@@ -49,6 +50,12 @@ export interface ForecastDay {
   low: number;
   icon: string;
   description: string;
+}
+
+export interface TrendingTopic {
+  name: string;
+  count: number;
+  slug: string;
 }
 
 export interface WeatherData {

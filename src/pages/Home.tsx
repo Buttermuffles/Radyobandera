@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getArticles, getMostRead } from "../lib/api";
-import type { Article } from "../types/news";
+import { Skeleton } from "boneyard-js/react";
+import { getArticles, getTrendingTopics } from "../lib/api";
+import type { Article, TrendingTopic } from "../types/news";
 import { HeroCarousel } from "../components/news/HeroCarousel";
 import { SectionBlock } from "../components/news/SectionBlock";
-import { MostRead } from "../components/news/MostRead";
-import { MostReadCard } from "../components/news/MostReadCard";
+import { TrendingTopics } from "../components/news/TrendingTopics";
+import { TrendingTopicsCard } from "../components/news/TrendingTopicsCard";
 import { LivePlayer } from "../components/media/LivePlayer";
 import { WeatherWidget } from "../components/common/WeatherWidget";
-import { Skeleton } from "../components/ui/skeleton";
+import { HomeSkeleton } from "../components/skeletons/HomeSkeleton";
 import { Card } from "../components/ui/card";
 import { DateStamp } from "../components/common/DateStamp";
 import { readingMinutes } from "../lib/utils";
+import { SEO } from "../components/common/SEO";
 import { Globe, BookOpen } from "lucide-react";
 
 interface HomeProps {
@@ -26,57 +28,34 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
   const [regional, setRegional] = useState<Article[]>([]);
   const [national, setNational] = useState<Article[]>([]);
   const [general, setGeneral] = useState<Article[]>([]);
-  const [mostRead, setMostRead] = useState<Article[]>([]);
+  const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getArticles({ limit: 5 }),
-      getArticles({ category: "LOCAL", limit: 4 }),
-      getArticles({ category: "REGIONAL", limit: 4 }),
-      getArticles({ category: "NATIONAL", limit: 4 }),
-      getArticles({ limit: 8 }), // General = full feed (no category filter)
-      getMostRead(24, 4),
-    ]).then(([top, localNews, regionalNews, nationalNews, generalNews, trending]) => {
+    getArticles({ limit: 60 }).then((all) => {
+      const top = all.slice(0, 5);
+      const localNews = all.filter((a) => a.category === "LOCAL").slice(0, 4);
+      const regionalNews = all.filter((a) => a.category === "REGIONAL").slice(0, 4);
+      const nationalNews = all.filter((a) => a.category === "NATIONAL").slice(0, 4);
+      const generalNews = all.slice(0, 8);
+
       setFeatured(top);
       setLocal(localNews);
       setRegional(regionalNews);
       setNational(nationalNews);
       setGeneral(generalNews);
-      setMostRead(trending);
+
+      getTrendingTopics(6, all).then(setTrendingTopics);
       setLoading(false);
     });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <Skeleton className="h-[300px] rounded-2xl sm:h-[420px] sm:rounded-[2rem]" />
-        <Skeleton className="h-[300px] rounded-2xl sm:h-[420px] sm:rounded-[2rem]" />
-      </div>
-    );
-  }
+  const trendingTopicsMemo = useMemo(() => trendingTopics, [trendingTopics]);
 
   return (
+    <Skeleton name="home" loading={loading} fallback={<HomeSkeleton />}>
+      <SEO />
     <div className="space-y-6">
-      {/* Hero banner */}
-      <section className="overflow-hidden rounded-2xl border border-brand-dark/10 bg-[linear-gradient(135deg,_#0a1a4a_0%,_#07163e_50%,_#0d1f56_100%)] p-5 shadow-[0_18px_50px_rgba(8,24,79,0.25)] sm:rounded-[2rem] sm:p-7 md:p-10">
-        <div className="flex flex-col items-start gap-3 sm:gap-4">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-wider text-white/70 sm:text-[0.6rem]">
-            Surallah 98.1 FM
-          </span>
-          <h1 className="max-w-3xl font-heading text-2xl font-black leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
-            Radyo Bandera Surallah
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-blue-200/80 sm:text-base md:text-lg">
-            Delivering fast, local-first news with a stronger broadcast identity.
-            Live updates, verified reports, and a cleaner reading experience
-            built for radio audiences on any device.
-          </p>
-        </div>
-      </section>
-
-      {/* Main content + sidebar */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
           <HeroCarousel articles={featured} />
@@ -85,7 +64,6 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
           <SectionBlock title="NATIONAL" articles={national} showMore />
         </div>
 
-        {/* Desktop sidebar */}
         <aside className="hidden space-y-4 lg:block">
           <section className="rounded-xl border border-white/60 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:rounded-[1.5rem] sm:p-4">
             <div className="mb-2 flex items-center justify-between sm:mb-3">
@@ -97,13 +75,11 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
             <LivePlayer videoUrl={videoUrl} isLive={isLive} audioUrl={audioUrl} />
           </section>
           <WeatherWidget />
-          <MostRead articles={mostRead} />
+          <TrendingTopics topics={trendingTopicsMemo} />
         </aside>
       </div>
 
-      {/* ── GENERAL NEWS — full-width below the grid ── */}
       <section className="space-y-6">
-        {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-lg sm:p-8">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
@@ -124,7 +100,6 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
           </div>
         </div>
 
-        {/* Card grid */}
         {general.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
             <BookOpen className="mx-auto mb-3 h-8 w-8 text-slate-400" />
@@ -143,6 +118,9 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
                     alt={article.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
+                    width="400"
+                    height="250"
                   />
                 </div>
                 <div className="flex flex-1 flex-col space-y-3 p-4">
@@ -177,10 +155,10 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
         )}
       </section>
 
-      {/* Mobile most-read (<lg only) */}
       <div className="lg:hidden">
-        <MostReadCard articles={mostRead} />
+        <TrendingTopicsCard topics={trendingTopicsMemo} />
       </div>
     </div>
+    </Skeleton>
   );
 }

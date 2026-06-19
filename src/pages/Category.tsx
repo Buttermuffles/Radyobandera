@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Skeleton } from "boneyard-js/react";
 import { getArticles } from "../lib/api";
 import type { Article, Category as CategoryType } from "../types/news";
 import { DateStamp } from "../components/common/DateStamp";
 import { readingMinutes } from "../lib/utils";
+import { CardGridSkeleton } from "../components/skeletons/CardGridSkeleton";
+import { SEO } from "../components/common/SEO";
 import { Card } from "../components/ui/card";
 import { BookOpen } from "lucide-react";
 
@@ -55,20 +58,9 @@ export function Category() {
 
   const meta = categoryMeta[normalized] ?? categoryMeta.OTHER;
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-80 animate-pulse rounded-xl bg-slate-200" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <Skeleton name={`category-${normalized.toLowerCase()}`} loading={loading} fallback={<CardGridSkeleton />}>
+      <SEO title={meta.label.replace(" NEWS", "") + " News"} description={meta.description} />
     <section className="space-y-8">
       {/* Header Banner */}
       <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${meta.accent} p-6 text-white shadow-lg sm:p-10`}>
@@ -102,6 +94,10 @@ export function Category() {
                   alt={article.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  width="400"
+                  height="250"
                 />
               </div>
               <div className="flex flex-1 flex-col space-y-3 p-4">
@@ -135,5 +131,6 @@ export function Category() {
         </div>
       )}
     </section>
+    </Skeleton>
   );
 }
