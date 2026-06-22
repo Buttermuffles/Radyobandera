@@ -6,6 +6,7 @@ import { getArticleBySlug } from "../lib/api";
 import type { Article as ArticleType } from "../types/news";
 import { CategoryBadge } from "../components/common/CategoryBadge";
 import { DateStamp } from "../components/common/DateStamp";
+import { ImageLightbox } from "../components/common/ImageLightbox";
 import { ArticleSkeleton } from "../components/skeletons/ArticleSkeleton";
 import { SEO } from "../components/common/SEO";
 
@@ -14,6 +15,7 @@ const SITE_URL = "https://radyo-bandera-surallah-981-fm.vercel.app";
 export function Article() {
   const { slug = "" } = useParams();
   const [article, setArticle] = useState<ArticleType | undefined | null>(undefined);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     setArticle(undefined);
@@ -24,6 +26,34 @@ export function Article() {
     () => (article ? DOMPurify.sanitize(article.body) : ""),
     [article],
   );
+
+  // ponytail: must keep hook count stable across renders — memo before any early return
+  const galleryImages = useMemo(
+    () => (article?.images || []).filter((img) => img !== article?.thumbnail),
+    [article?.images, article?.thumbnail],
+  );
+
+  const bodyContent = useMemo(() => {
+    if (!sanitizedBody) return [];
+    const paragraphRegex = /<p>[\s\S]*?<\/p>/g;
+    const matches = sanitizedBody.match(paragraphRegex);
+    if (!matches || matches.length === 0) {
+      return [{ type: "html" as const, html: sanitizedBody }];
+    }
+    const items: Array<
+      | { type: "para"; html: string }
+      | { type: "img"; src: string }
+    > = [];
+    let imgIdx = 0;
+    matches.forEach((para, i) => {
+      items.push({ type: "para", html: para });
+      if ((i + 1) % 2 === 0 && imgIdx < galleryImages.length) {
+        items.push({ type: "img", src: galleryImages[imgIdx] });
+        imgIdx++;
+      }
+    });
+    return items;
+  }, [sanitizedBody, galleryImages]);
 
   if (article === null) {
     return <p className="rounded-lg bg-white p-6 text-center text-slate-600">Article not found.</p>;
@@ -40,6 +70,7 @@ export function Article() {
   const a = article;
   const articleUrl = `${SITE_URL}/article/${a.slug}`;
   const fbShareUrl = a.facebookUrl || `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`;
+
   return (
     <Skeleton name="article" loading={false} fallback={<ArticleSkeleton />}>
       <SEO
@@ -77,11 +108,14 @@ export function Article() {
       </div>
 
       {a.thumbnail && (
-        <div className="overflow-hidden rounded-xl bg-slate-50">
+        <div
+          className="cursor-pointer overflow-hidden rounded-xl bg-slate-50"
+          onClick={() => setSelectedImage(a.thumbnail)}
+        >
           <img
             src={a.thumbnail}
             alt={a.title}
-            className="max-h-[460px] w-full object-cover"
+            className="max-h-[460px] w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
             loading="eager"
             decoding="async"
             referrerPolicy="no-referrer"
@@ -91,29 +125,30 @@ export function Article() {
         </div>
       )}
 
-      {a.images && a.images.length > 1 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {a.images.slice(1).map((img, i) => (
-            <div key={i} className="overflow-hidden rounded-lg bg-slate-50">
+      <div className="space-y-4 font-body text-base sm:text-lg leading-relaxed sm:leading-8 text-slate-800">
+        {bodyContent.map((item, i) =>
+          item.type === "img" ? (
+            <div
+              key={i}
+              className="cursor-pointer overflow-hidden rounded-xl bg-slate-50"
+              onClick={() => setSelectedImage(item.src)}
+            >
               <img
-                src={img}
-                alt={`${a.title} — image ${i + 2}`}
-                className="aspect-[4/3] w-full object-cover"
+                src={item.src}
+                alt={`${a.title} — image ${i + 1}`}
+                className="aspect-[16/10] w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
                 loading="lazy"
                 decoding="async"
                 referrerPolicy="no-referrer"
-                width="400"
-                height="300"
+                width="800"
+                height="500"
               />
             </div>
-          ))}
-        </div>
-      )}
-
-      <div
-        className="space-y-4 font-body text-base sm:text-lg leading-relaxed sm:leading-8 text-slate-800"
-        dangerouslySetInnerHTML={{ __html: sanitizedBody }}
-      />
+          ) : (
+            <div key={i} dangerouslySetInnerHTML={{ __html: item.html }} />
+          )
+        )}
+      </div>
 
       <div className="space-y-6 border-t border-slate-100 pt-6">
         <div className="flex flex-wrap items-center gap-3">
@@ -154,6 +189,10 @@ export function Article() {
         </Link>
       </div>
     </article>
+
+      {selectedImage && (
+        <ImageLightbox src={selectedImage} alt={a.title} onClose={() => setSelectedImage(null)} />
+      )}
     </Skeleton>
   );
 }

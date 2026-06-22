@@ -1,11 +1,13 @@
-import type { Article, Category, LiveStreamResponse, WeatherData, TrendingTopic } from "../types/news";
+import type { Article, Category, LiveStreamResponse, WeatherData } from "../types/news";
 import { getCache, getCacheStale, setCache, persistCache, findInCache, hasCacheCookie } from "./cache";
-import { getPagePosts, convertPostToArticle, detectCategory } from "./facebook";
 
-const CACHE_TTL = 5 * 60 * 1000;
-const HARD_TTL = 30 * 60 * 1000;
+const CACHE_TTL = 15 * 60 * 1000;
+const HARD_TTL = 60 * 60 * 1000;
 const FETCH_TIMEOUT = 5000;
+
 const FB_PAGE_ID = import.meta.env.VITE_FACEBOOK_LOCAL_PAGE_ID;
+const FB_TOKEN = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
+const FB_API_VERSION = import.meta.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v20.0";
 
 interface ApiArticle {
   id: string;
@@ -53,21 +55,37 @@ function toArticle(a: ApiArticle): Article {
   };
 }
 
-async function fetchFromFacebook(): Promise<Article[]> {
-  if (!FB_PAGE_ID) return [];
+// ponytail: minimal inline Facebook fallback for local dev (no Vercel server)
+async function fetchFacebookFallback(_category?: string): Promise<Article[]> {
+  if (!FB_PAGE_ID || !FB_TOKEN) return [];
   try {
-    const posts = await getPagePosts(FB_PAGE_ID, 60);
-    return posts.map((post) =>
-      convertPostToArticle(post, detectCategory(post.message || ""), {
-        id: "fb-page",
-        name: "Radyo Bandera Surallah 98.1 FM",
-        role: "admin",
-      })
-    );
-  } catch (e) {
-    console.warn("Facebook fallback failed:", e);
-    return [];
-  }
+    const url = `https://graph.facebook.com/${FB_API_VERSION}/${FB_PAGE_ID}/posts?fields=id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{subattachments{media{image{src}}},media_type,media{image{src}},url}&access_token=${FB_TOKEN}&limit=60`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.error || !data.data) return [];
+    return (data.data as any[]).filter((p: any) => p.message).map((post: any) => {
+      const content = post.message || "";
+      const [excerpt, ...bodyParts] = content.split("\n");
+      const lower = content.toLowerCase();
+      const tags = (content.match(/#(\w+)/g) || []).map((t: string) => t.substring(1));
+      const category = lower.includes("#local") ? "LOCAL" : lower.includes("#regional") ? "REGIONAL" : lower.includes("#national") ? "NATIONAL" : "OTHER";
+      const images: string[] = [];
+      if (post.full_picture) images.push(post.full_picture);
+      return {
+        id: post.id, slug: post.id.replace("_", "-"),
+        title: (excerpt || "Untitled").substring(0, 100),
+        excerpt: (excerpt || "").substring(0, 160),
+        body: `<p>${bodyParts.join("</p><p>")}</p>`, category: category as Category,
+        author: { id: "fb-page", name: "Radyo Bandera Surallah 98.1 FM", role: "Facebook Page" },
+        thumbnail: post.full_picture || post.picture || "",
+        images: images.length > 1 ? images : undefined,
+        publishedAt: post.created_time, tags,
+        views: post.likes?.data?.length || 0, isBreaking: lower.includes("#breaking") || lower.includes("breaking news"),
+        facebookUrl: post.permalink_url,
+      };
+    });
+  } catch { return []; }
 }
 
 const inflightRefreshes = new Set<string>();
@@ -85,7 +103,8 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 function storeArticles(cacheKey: string, articles: Article[]): void {
   if (articles.length > 0) {
     setCache(cacheKey, articles);
-    persistCache();
+    // ponytail: defer localStorage write — don't block render on serialization
+    queueMicrotask(() => persistCache());
   }
 }
 
@@ -102,7 +121,7 @@ function bgRefresh(cacheKey: string, url: string): void {
     .finally(() => inflightRefreshes.delete(cacheKey));
 }
 
-async function fetchFresh(cacheKey: string, qs: string, slug?: string): Promise<Article[]> {
+async function fetchFresh(cacheKey: string, qs: string): Promise<{ articles: Article[]; hasMore: boolean }> {
   const url = `${BASE}?${qs}`;
 
   try {
@@ -112,25 +131,23 @@ async function fetchFresh(cacheKey: string, qs: string, slug?: string): Promise<
       const articles = (data.articles || []).map(toArticle);
       if (articles.length > 0) {
         storeArticles(cacheKey, articles);
-        return articles;
+        return { articles, hasMore: data.hasMore };
       }
     }
   } catch {
-    /* API failed, try Facebook fallback */
-  }
-
-  const fbArticles = await fetchFromFacebook();
-  if (fbArticles.length > 0) {
-    const matched = slug ? fbArticles.filter((a) => a.slug === slug) : fbArticles;
-    if (matched.length > 0) {
-      storeArticles(cacheKey, matched);
-      return matched;
-    }
+    /* ponytail: fallback to direct Facebook API for local dev */
+    const fb = await fetchFacebookFallback();
+    if (fb.length > 0) { storeArticles(cacheKey, fb); return { articles: fb, hasMore: false }; }
   }
 
   const stale = getCacheStale<Article[]>(cacheKey, Number.MAX_SAFE_INTEGER);
-  if (stale) return stale;
-  return [];
+  if (stale) return { articles: stale, hasMore: false };
+  return { articles: [], hasMore: false };
+}
+
+interface FetchResult {
+  articles: Article[];
+  hasMore: boolean;
 }
 
 async function fetchFromApi(params?: {
@@ -138,30 +155,34 @@ async function fetchFromApi(params?: {
   limit?: number;
   search?: string;
   slug?: string;
-}): Promise<Article[]> {
+  page?: number;
+}): Promise<FetchResult> {
   const query = new URLSearchParams();
   if (params?.category) query.set("category", params.category);
   if (params?.search) query.set("search", params.search);
   if (params?.slug) query.set("slug", params.slug);
   query.set("limit", String(params?.limit || 60));
-  query.set("page", "1");
+  query.set("page", String(params?.page || 1));
 
   const qs = query.toString();
+  const page = params?.page || 1;
+  const limit = params?.limit || 60;
   const cacheKey = params?.slug
     ? `article:${params.slug}`
-    : `articles:${params?.category || "all"}:${params?.search || ""}:${params?.limit || 60}`;
+    : `articles:${params?.category || "all"}:${params?.search || ""}:${limit}:page${page}`;
 
   const cached = getCache<Article[]>(cacheKey, CACHE_TTL);
-  if (cached) return cached;
+  if (cached) return { articles: cached, hasMore: cached.length === limit };
 
   const stale = getCacheStale<Article[]>(cacheKey, HARD_TTL);
   if (stale) {
     bgRefresh(cacheKey, `${BASE}?${qs}`);
-    return stale;
+    return { articles: stale, hasMore: stale.length === limit };
   }
 
-  if (params?.category || params?.slug) {
-    const allKey = `articles:all:60`;
+  // ponytail: only derive from all-cache for page 1 (subsequent pages need real fetch)
+  if (page === 1 && (params?.category || params?.slug)) {
+    const allKey = `articles:all:60:page1`;
     const allStale = getCacheStale<Article[]>(allKey, Number.MAX_SAFE_INTEGER);
     if (allStale) {
       const filtered = params?.slug
@@ -170,7 +191,7 @@ async function fetchFromApi(params?: {
       if (filtered.length > 0) {
         setCache(cacheKey, filtered);
         persistCache();
-        return filtered;
+        return { articles: filtered, hasMore: false };
       }
     }
   }
@@ -179,18 +200,24 @@ async function fetchFromApi(params?: {
     const cookieStale = getCacheStale<Article[]>(cacheKey, Number.MAX_SAFE_INTEGER);
     if (cookieStale) {
       bgRefresh(cacheKey, `${BASE}?${qs}`);
-      return cookieStale;
+      return { articles: cookieStale, hasMore: false };
     }
   }
 
-  return fetchFresh(cacheKey, qs, params?.slug);
+  return fetchFresh(cacheKey, qs);
+}
+
+// ponytail: sync cache read — used by pages to show content on first render (no skeleton flash)
+export function getArticlesSync(): Article[] | null {
+  return getCache<Article[]>("articles:all::60:page1", HARD_TTL);
 }
 
 export async function getArticles(params?: {
   category?: Category;
   limit?: number;
   search?: string;
-}): Promise<Article[]> {
+  page?: number;
+}): Promise<{ articles: Article[]; hasMore: boolean }> {
   return fetchFromApi(params);
 }
 
@@ -207,41 +234,21 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
     }
   }
 
-  const articles = await fetchFromApi({ slug, limit: 1 });
+  const { articles } = await fetchFromApi({ slug, limit: 1 });
   return articles[0];
 }
 
 export async function getBreakingNews(): Promise<Article[]> {
-  const all = await getArticles({ limit: 30 });
-  return all.filter((article) => article.isBreaking);
+  const { articles } = await getArticles({ limit: 30 });
+  return articles.filter((article) => article.isBreaking);
 }
 
 export async function getMostRead(hours = 24, limit = 4): Promise<Article[]> {
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
-  const all = await getArticles({ limit: 50 });
-  return all
+  const { articles } = await getArticles({ limit: 50 });
+  return articles
     .filter((article) => +new Date(article.publishedAt) >= cutoff)
     .sort((a, b) => b.views - a.views)
-    .slice(0, limit);
-}
-
-export async function getTrendingTopics(limit = 6, articles?: Article[]): Promise<TrendingTopic[]> {
-  if (!articles) articles = await getArticles({ limit: 50 });
-
-  const tagCount = new Map<string, number>();
-  for (const article of articles) {
-    for (const tag of article.tags) {
-      tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
-    }
-  }
-
-  return Array.from(tagCount.entries())
-    .map(([name, count]) => ({
-      name,
-      count,
-      slug: name.toLowerCase().replace(/\s+/g, "-"),
-    }))
-    .sort((a, b) => b.count - a.count)
     .slice(0, limit);
 }
 

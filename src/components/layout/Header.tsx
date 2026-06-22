@@ -78,11 +78,14 @@ export function Header({ onSearch }: HeaderProps) {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="justify-self-end rounded-md border border-slate-300 p-1.5 xs:p-2 lg:hidden min-w-touch min-h-touch flex items-center justify-center"
+          className="justify-self-end rounded-md border border-slate-200 p-1.5 xs:p-2 lg:hidden min-w-touch min-h-touch flex items-center justify-center transition hover:border-slate-400 hover:bg-slate-50 active:scale-95"
           onClick={() => setMobileOpen((prev) => !prev)}
           aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <div className="relative h-5 w-5">
+            <X className={`absolute inset-0 h-5 w-5 transition-all duration-200 ${mobileOpen ? "rotate-0 opacity-100" : "rotate-90 opacity-0"}`} />
+            <Menu className={`absolute inset-0 h-5 w-5 transition-all duration-200 ${mobileOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`} />
+          </div>
         </button>
 
         {/* Navigation - Desktop */}
@@ -93,8 +96,8 @@ export function Header({ onSearch }: HeaderProps) {
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "rounded px-2 py-1 text-brand-dark hover:bg-brand-gray hover:text-brand-red transition min-w-touch min-h-touch",
-                  isActive && "bg-brand-gray text-brand-red",
+                  "relative rounded px-2 py-1.5 text-brand-dark transition min-w-touch min-h-touch hover:text-brand-red",
+                  isActive && "font-black text-brand-red after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-brand-red",
                 )
               }
             >
@@ -186,8 +189,8 @@ export function Header({ onSearch }: HeaderProps) {
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      "block rounded px-3 py-2.5 text-sm font-semibold text-brand-dark hover:bg-brand-gray hover:text-brand-red transition min-h-touch",
-                      isActive && "bg-brand-gray text-brand-red",
+                      "block rounded-r-lg border-l-4 border-transparent px-3 py-2.5 text-sm font-semibold text-brand-dark transition min-h-touch hover:border-brand-red/30 hover:bg-brand-red/5 hover:text-brand-red",
+                      isActive && "border-brand-red bg-brand-red/5 font-black text-brand-red",
                     )
                   }
                 >

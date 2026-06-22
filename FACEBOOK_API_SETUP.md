@@ -253,3 +253,6 @@ For issues with:
 - **Facebook API**: Check [Facebook Developers](https://developers.facebook.com/)
 - **App Configuration**: Check Facebook App Dashboard
 - **Code Issues**: Review [src/lib/facebook.ts](../lib/facebook.ts)
+Every 2 paragraph or depends in the sentence structure of the news
+
+plus add this in the different pages of the local, Regional, and National, and General make the header section dont make it skeleton loading

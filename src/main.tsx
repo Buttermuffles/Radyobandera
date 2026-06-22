@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import './index.css'
 import App from './App.tsx'
-import { initializeFacebook } from './lib/facebook'
 import { hydrateCache, clearStorageCache } from './lib/cache'
+import { getArticles } from './lib/api'
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 if (SENTRY_DSN) {
@@ -18,6 +18,9 @@ if (SENTRY_DSN) {
 
 hydrateCache();
 
+// ponytail: warm cache before React renders — Home's useEffect will hit cache instead of Facebook
+getArticles({ limit: 60 }).catch(() => {});
+
 const STORAGE_AGE_LIMIT = 24 * 60 * 60 * 1000;
 try {
   const cached = localStorage.getItem('app-cache-timestamp');
@@ -28,8 +31,6 @@ try {
 } catch {
   /* ignore */
 }
-
-initializeFacebook();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

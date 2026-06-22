@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Skeleton } from "boneyard-js/react";
-import { getArticles } from "../lib/api";
+import { getArticles, getArticlesSync } from "../lib/api";
 import type { Article, Category as CategoryType } from "../types/news";
 import { DateStamp } from "../components/common/DateStamp";
 import { readingMinutes } from "../lib/utils";
 import { CardGridSkeleton } from "../components/skeletons/CardGridSkeleton";
+import { Pagination } from "../components/ui/Pagination";
 import { SEO } from "../components/common/SEO";
 import { Card } from "../components/ui/card";
 import { BookOpen } from "lucide-react";
@@ -35,22 +35,41 @@ const categoryMeta: Record<CategoryType, { label: string; description: string; a
   },
 };
 
+const PER_PAGE = 24;
+
 export function Category() {
   const { category = "" } = useParams();
   const normalized = category.toUpperCase() as CategoryType;
   const [items, setItems] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   const isValid = useMemo(() => validCategories.includes(normalized), [normalized]);
 
-  useEffect(() => {
+  // ponytail: sync cache — return visitors see content immediately, no skeleton flash (page 1 only)
+  const cachedFiltered = useMemo(() => {
+    if (!isValid || page !== 1) return null;
+    const all = getArticlesSync();
+    return all ? all.filter((a) => a.category === normalized).slice(0, PER_PAGE) : null;
+  }, [isValid, normalized, page]);
+
+  const fetchPage = useCallback((p: number) => {
     if (!isValid) return;
     setLoading(true);
-    getArticles({ category: normalized, limit: 24 }).then((data) => {
-      setItems(data);
+    getArticles({ category: normalized, limit: PER_PAGE, page: p }).then(({ articles, hasMore: hm }) => {
+      setItems(articles);
+      setHasMore(hm);
       setLoading(false);
     });
   }, [isValid, normalized]);
+
+  useEffect(() => {
+    fetchPage(page);
+  }, [page, fetchPage]);
+
+  const displayItems = cachedFiltered ?? items;
+  const showSkeleton = loading && !cachedFiltered;
 
   if (!isValid) {
     return <p className="rounded-lg bg-white p-6">Unknown category.</p>;
@@ -59,10 +78,9 @@ export function Category() {
   const meta = categoryMeta[normalized] ?? categoryMeta.OTHER;
 
   return (
-    <Skeleton name={`category-${normalized.toLowerCase()}`} loading={loading} fallback={<CardGridSkeleton />}>
-      <SEO title={meta.label.replace(" NEWS", "") + " News"} description={meta.description} />
     <section className="space-y-8">
-      {/* Header Banner */}
+      <SEO title={meta.label.replace(" NEWS", "") + " News"} description={meta.description} />
+      {/* ponytail: header banner renders immediately, no skeleton */}
       <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${meta.accent} p-6 text-white shadow-lg sm:p-10`}>
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
         <div className="relative z-10 flex flex-col gap-2">
@@ -74,8 +92,9 @@ export function Category() {
         </div>
       </div>
 
-      {/* Grid gallery */}
-      {items.length === 0 ? (
+      {showSkeleton ? (
+        <CardGridSkeleton />
+      ) : displayItems.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-500">
           <BookOpen className="mx-auto mb-3 h-8 w-8 text-slate-400" />
           <p className="font-semibold">No articles available in this category yet.</p>
@@ -83,23 +102,25 @@ export function Category() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((article) => (
+          {displayItems.map((article) => (
             <Card
               key={article.id}
               className="group flex h-full flex-col overflow-hidden rounded-xl border-slate-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
             >
-              <div className="relative aspect-[16/10] overflow-hidden bg-slate-50">
-                <img
-                  src={article.thumbnail || "/LOGO.jpg"}
-                  alt={article.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  decoding="async"
-                  referrerPolicy="no-referrer"
-                  width="400"
-                  height="250"
-                />
-              </div>
+              <Link to={`/article/${article.slug}`} className="block">
+                <div className="relative aspect-[16/10] overflow-hidden bg-slate-50">
+                  <img
+                    src={article.thumbnail || "/LOGO.jpg"}
+                    alt={article.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    width="400"
+                    height="250"
+                  />
+                </div>
+              </Link>
               <div className="flex flex-1 flex-col space-y-3 p-4">
                 <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
                   <DateStamp date={article.publishedAt} />
@@ -130,7 +151,9 @@ export function Category() {
           ))}
         </div>
       )}
+      {!showSkeleton && displayItems.length > 0 && (
+        <Pagination page={page} hasMore={hasMore} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
+      )}
     </section>
-    </Skeleton>
   );
 }

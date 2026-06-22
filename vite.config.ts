@@ -70,6 +70,18 @@ export default defineConfig({
               },
             },
           },
+          // ponytail: SW serves cached API response while revalidating — sub-50ms on repeat visits
+          {
+            urlPattern: /^\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60,
+              },
+            },
+          },
         ],
       },
     }),

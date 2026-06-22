@@ -66,20 +66,22 @@ export function NewsCard({ article, variant }: NewsCardProps) {
       <Card
         className="overflow-hidden border-white/70 bg-white shadow-card hover:shadow-card-hover transition-transform duration-200 hover:-translate-y-1 flex flex-col xs:flex-row"
       >
-        <img
-          src={article.thumbnail}
-          alt={article.title}
-          className={cn(
-            "w-full object-cover",
-            imageClass,
-            "xs:h-32 xs:w-32 xs:flex-none sm:h-40 sm:w-40"
-          )}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          width="160"
-          height="160"
-        />
+        <Link to={`/article/${article.slug}`} className="block shrink-0">
+          <img
+            src={article.thumbnail}
+            alt={article.title}
+            className={cn(
+              "w-full object-cover",
+              imageClass,
+              "xs:h-32 xs:w-32 xs:flex-none sm:h-40 sm:w-40"
+            )}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            width="160"
+            height="160"
+          />
+        </Link>
         <CardContent className="space-y-2 flex-1 min-w-0">
           <CategoryBadge category={article.category} />
           <Link
@@ -109,19 +111,21 @@ export function NewsCard({ article, variant }: NewsCardProps) {
         variant === "sidebar" && "bg-slate-900 text-white border-white/20",
       )}
     >
-      <img
-        src={article.thumbnail}
-        alt={article.title}
-        className={cn(
-          "w-full object-cover",
-          imageClass,
-        )}
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        width={isHero ? 800 : 400}
-        height={isHero ? 450 : 260}
-      />
+      <Link to={`/article/${article.slug}`} className="block">
+        <img
+          src={article.thumbnail}
+          alt={article.title}
+          className={cn(
+            "w-full object-cover",
+            imageClass,
+          )}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          width={isHero ? 800 : 400}
+          height={isHero ? 450 : 260}
+        />
+      </Link>
       <CardContent
         className={cn(
           "space-y-2",

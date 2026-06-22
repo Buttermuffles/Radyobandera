@@ -1,5 +1,5 @@
 const FB_TOKEN = process.env.VITE_FACEBOOK_ACCESS_TOKEN;
-const API_VERSION = process.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v25.0";
+const API_VERSION = process.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v20.0";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

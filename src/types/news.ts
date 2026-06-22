@@ -52,12 +52,6 @@ export interface ForecastDay {
   description: string;
 }
 
-export interface TrendingTopic {
-  name: string;
-  count: number;
-  slug: string;
-}
-
 export interface WeatherData {
   current: CurrentWeather;
   forecast: ForecastDay[];

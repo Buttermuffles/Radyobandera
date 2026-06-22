@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getArticles, getArticleBySlug, getBreakingNews, getTrendingTopics, getMostRead } from "../api";
+import { getArticles, getArticleBySlug, getBreakingNews, getMostRead } from "../api";
 
 vi.mock("../cache", () => ({
   getCache: vi.fn(() => null),
@@ -47,7 +47,7 @@ beforeEach(() => {
 
 describe("getArticles", () => {
   it("returns articles", async () => {
-    const articles = await getArticles({ limit: 5 });
+    const { articles } = await getArticles({ limit: 5 });
     expect(Array.isArray(articles)).toBe(true);
     expect(articles.length).toBe(3);
   });
@@ -58,7 +58,7 @@ describe("getArticles", () => {
       ok: true,
       json: () => Promise.resolve({ articles: local, total: local.length, page: 1, hasMore: false }),
     }));
-    const articles = await getArticles({ category: "LOCAL", limit: 10 });
+    const { articles } = await getArticles({ category: "LOCAL", limit: 10 });
     expect(articles.length).toBeGreaterThan(0);
     articles.forEach((a) => expect(a.category).toBe("LOCAL"));
   });
@@ -74,7 +74,7 @@ describe("getArticles", () => {
         json: () => Promise.resolve({ articles: filtered, total: filtered.length, page: 1, hasMore: false }),
       };
     }));
-    const articles = await getArticles({ search: "Surallah", limit: 10 });
+    const { articles } = await getArticles({ search: "Surallah", limit: 10 });
     expect(articles.length).toBeGreaterThan(0);
     articles.forEach((a) => {
       const matches =
@@ -90,12 +90,12 @@ describe("getArticles", () => {
       ok: true,
       json: () => Promise.resolve({ articles: [], total: 0, page: 1, hasMore: false }),
     }));
-    const articles = await getArticles({ search: "xyznonexistent12345" });
+    const { articles } = await getArticles({ search: "xyznonexistent12345" });
     expect(articles).toHaveLength(0);
   });
 
   it("respects limit parameter", async () => {
-    const articles = await getArticles({ limit: 3 });
+    const { articles } = await getArticles({ limit: 3 });
     expect(articles.length).toBeLessThanOrEqual(3);
   });
 });
@@ -128,22 +128,6 @@ describe("getBreakingNews", () => {
     const articles = await getBreakingNews();
     expect(articles.length).toBeGreaterThan(0);
     articles.forEach((a) => expect(a.isBreaking).toBe(true));
-  });
-});
-
-describe("getTrendingTopics", () => {
-  it("returns sorted trending topics", async () => {
-    const topics = await getTrendingTopics(5);
-    expect(topics.length).toBeGreaterThan(0);
-    expect(topics.length).toBeLessThanOrEqual(5);
-    for (let i = 1; i < topics.length; i++) {
-      expect(topics[i - 1].count).toBeGreaterThanOrEqual(topics[i].count);
-    }
-    topics.forEach((t) => {
-      expect(t).toHaveProperty("name");
-      expect(t).toHaveProperty("count");
-      expect(t).toHaveProperty("slug");
-    });
   });
 });
 
