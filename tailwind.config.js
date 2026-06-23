@@ -55,7 +55,7 @@ export default {
         },
       },
       animation: {
-        ticker: "ticker 600s linear infinite",
+        ticker: "ticker 3600s linear infinite",
       },
       boxShadow: {
         card: "0 1px 3px rgba(0, 0, 0, 0.1)",
