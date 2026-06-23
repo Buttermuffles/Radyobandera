@@ -35,19 +35,19 @@ export function SectionBlock({ title, articles, showMore = true }: SectionBlockP
           {articles.map((article) => (
             <div
               key={article.id}
-              className="w-[calc(100vw-2rem)] min-w-[calc(100vw-2rem)] flex-none snap-start"
+              className="w-[75vw] min-w-[75vw] flex-none snap-start"
               style={{ scrollSnapAlign: "start" }}
             >
-              <NewsCard article={article} variant="compact" />
+              <NewsCard article={article} variant="grid" />
             </div>
           ))}
         </div>
 
         {/* Tablet/Desktop grid layout */}
-        <div className="hidden gap-4 sm:grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+        <div className="hidden gap-4 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
           {articles.map((article) => (
             <div key={article.id}>
-              <NewsCard article={article} variant="compact" />
+              <NewsCard article={article} variant="grid" />
             </div>
           ))}
         </div>

@@ -10,10 +10,8 @@ import {
 import { HelmetProvider } from "react-helmet-async";
 import { Footer } from "./components/layout/Footer";
 import { Header } from "./components/layout/Header";
-import { LiveBar } from "./components/layout/LiveBar";
 import { LiveBarFAB } from "./components/layout/LiveBarFAB";
 import { AdBanner } from "./components/media/AdBanner";
-import { useBreakingNews } from "./hooks/useBreakingNews";
 import { useLiveStream } from "./hooks/useLiveStream";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
@@ -52,7 +50,6 @@ function RouteMeta() {
 
 function AppShell() {
   const navigate = useNavigate();
-  const { items: breaking } = useBreakingNews();
   const { stream } = useLiveStream();
 
   return (
@@ -69,14 +66,14 @@ function AppShell() {
       <ScrollToTopOnRouteChange />
       <RouteMeta />
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:pb-5 md:pb-5 lg:pb-5">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 pb-5 sm:pb-5 md:pb-5 lg:pb-5">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route
               path="/"
               element={
                 <ErrorBoundary>
-                  <Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} embedHtml={stream?.embedHtml ?? ""} permalinkUrl={stream?.permalinkUrl ?? ""} />
+                  <Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} embedHtml={stream?.embedHtml ?? ""} permalinkUrl={stream?.permalinkUrl ?? ""} />
                 </ErrorBoundary>
               }
             />
@@ -119,19 +116,13 @@ function AppShell() {
 
       <Footer />
 
-      <div className="hidden lg:block">
-        <LiveBar audioUrl={stream?.audioUrl ?? ""} items={breaking} />
-      </div>
-
       <div className="lg:hidden">
         <LiveBarFAB
           isLive={stream?.isLive ?? false}
-          audioUrl={stream?.audioUrl ?? ""}
           onWatchClick={() => {
             const player = document.getElementById("live-player");
             player?.scrollIntoView({ behavior: "smooth" });
           }}
-          onListenClick={() => {}}
         />
       </div>
 

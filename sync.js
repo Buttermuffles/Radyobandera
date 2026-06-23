@@ -7,6 +7,10 @@ const FB_TOKEN = process.env.VITE_FACEBOOK_ACCESS_TOKEN;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
+function normalizeUrl(url) {
+  try { const u = new URL(url); return u.origin + u.pathname; } catch { return url; }
+}
+
 if (!FB_PAGE_ID || !FB_TOKEN || !SUPABASE_URL || !SUPABASE_KEY) {
   console.error("Missing required environment variables!");
   process.exit(1);
@@ -37,9 +41,27 @@ function parsePosts(rawPosts) {
       if (lower.includes("#local")) category = "LOCAL";
       else if (lower.includes("#regional")) category = "REGIONAL";
       else if (lower.includes("#national")) category = "NATIONAL";
+      else if (["surallah","tboli","norala","banga","lake sebu"].some(k=>lower.includes(k))) category = "LOCAL";
+      else if (["south cotabato","general santos","gensan","koronadal","soccsksargen"].some(k=>lower.includes(k))) category = "REGIONAL";
+      else if (["president","senate","congress","duterte","philippines"].some(k=>lower.includes(k))) category = "NATIONAL";
 
       const tags = (content.match(/#(\w+)/g) || []).map((t) => t.substring(1));
       const slug = post.id.replace("_", "-");
+
+      const images = [];
+      if (post.full_picture) images.push(post.full_picture);
+      if (post.attachments?.data) {
+        for (const att of post.attachments.data) {
+          const src = att.media?.image?.src;
+          if (src && !images.some((i) => normalizeUrl(i) === normalizeUrl(src))) images.push(src);
+          if (att.subattachments?.data) {
+            for (const sub of att.subattachments.data) {
+              const subSrc = sub.media?.image?.src;
+              if (subSrc && !images.some((i) => normalizeUrl(i) === normalizeUrl(subSrc))) images.push(subSrc);
+            }
+          }
+        }
+      }
 
       return {
         id: post.id,
@@ -51,6 +73,7 @@ function parsePosts(rawPosts) {
         author_name: "Radyo Bandera Surallah 98.1 FM",
         author_role: "Facebook Page",
         thumbnail: post.full_picture || post.picture || "",
+        images,
         published_at: post.created_time,
         tags,
         views: post.likes?.data?.length || 0,
@@ -77,7 +100,7 @@ async function syncFacebookPosts() {
     const pageToken = tokenData.access_token || FB_TOKEN;
 
     console.log("Fetching posts from Facebook...");
-    const postsUrl = `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/posts?fields=id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{media_type,media,url},shares,likes.summary(true),comments.summary(true)&access_token=${pageToken}&limit=100`;
+    const postsUrl = `https://graph.facebook.com/v20.0/${FB_PAGE_ID}/posts?fields=id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{subattachments{media{image{src}}},media_type,media{image{src}},url},shares,likes.summary(true),comments.summary(true)&access_token=${pageToken}&limit=100`;
 
     const postsRes = await fetch(postsUrl);
     const postsData = await postsRes.json();

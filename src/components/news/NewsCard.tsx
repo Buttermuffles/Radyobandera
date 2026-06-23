@@ -15,14 +15,14 @@ export function NewsCard({ article, variant }: NewsCardProps) {
   const isList = variant === "list";
   const isCompact = variant === "compact";
   const isGrid = variant === "grid";
-  
+
   // Responsive image heights: mobile-optimized
   const imageClass = isHero
     ? "h-44 sm:h-56 md:h-72 lg:h-96"  // Responsive hero heights
     : isCompact
       ? "aspect-video"
       : isGrid
-        ? "h-24 sm:h-32 md:h-40 lg:h-52"  // Better mobile scaling
+        ? "aspect-[16/10]"  // Better mobile scaling
         : "h-32 sm:h-40 md:h-48 lg:h-56";  // Sidebar responsive
 
   if (isCompact) {
@@ -138,7 +138,7 @@ export function NewsCard({ article, variant }: NewsCardProps) {
           to={`/article/${article.slug}`}
           className={cn(
             "block font-heading leading-tight text-brand-dark hover:text-brand-red transition",
-            isHero ? "text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold" 
+            isHero ? "text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold"
             : isGrid ? "text-xs xs:text-sm sm:text-base md:text-lg font-semibold line-clamp-2"
             : "text-base sm:text-lg font-semibold",
             variant === "sidebar" && "text-white hover:text-brand-yellow",
@@ -148,8 +148,8 @@ export function NewsCard({ article, variant }: NewsCardProps) {
         </Link>
         <p
           className={cn(
-            "hidden text-xs xs:text-sm leading-5 sm:leading-6",
-            isHero ? "sm:line-clamp-3" : isGrid ? "sm:line-clamp-2" : "sm:line-clamp-2",
+            "text-xs xs:text-sm leading-5 sm:leading-6",
+            isGrid ? "line-clamp-2" : "hidden sm:block sm:line-clamp-2",
             variant === "sidebar" ? "text-white/80" : "text-slate-600",
           )}
         >

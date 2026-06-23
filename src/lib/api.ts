@@ -1,6 +1,10 @@
 import type { Article, Category, LiveStreamResponse, WeatherData } from "../types/news";
 import { getCache, getCacheStale, setCache, persistCache, findInCache, hasCacheCookie } from "./cache";
 
+function normalizeUrl(url: string) {
+  try { const u = new URL(url); return u.origin + u.pathname; } catch { return url; }
+}
+
 const CACHE_TTL = 15 * 60 * 1000;
 const HARD_TTL = 60 * 60 * 1000;
 const FETCH_TIMEOUT = 5000;
@@ -56,7 +60,7 @@ function toArticle(a: ApiArticle): Article {
 }
 
 // ponytail: minimal inline Facebook fallback for local dev (no Vercel server)
-async function fetchFacebookFallback(_category?: string): Promise<Article[]> {
+async function fetchFacebookFallback(category?: Category): Promise<Article[]> {
   if (!FB_PAGE_ID || !FB_TOKEN) return [];
   try {
     const url = `https://graph.facebook.com/${FB_API_VERSION}/${FB_PAGE_ID}/posts?fields=id,message,story,permalink_url,created_time,full_picture,picture,status_type,attachments{subattachments{media{image{src}}},media_type,media{image{src}},url}&access_token=${FB_TOKEN}&limit=60`;
@@ -64,27 +68,43 @@ async function fetchFacebookFallback(_category?: string): Promise<Article[]> {
     if (!res.ok) return [];
     const data = await res.json();
     if (data.error || !data.data) return [];
-    return (data.data as any[]).filter((p: any) => p.message).map((post: any) => {
+    const all = (data.data as any[]).filter((p: any) => p.message).map((post: any) => {
       const content = post.message || "";
       const [excerpt, ...bodyParts] = content.split("\n");
       const lower = content.toLowerCase();
       const tags = (content.match(/#(\w+)/g) || []).map((t: string) => t.substring(1));
-      const category = lower.includes("#local") ? "LOCAL" : lower.includes("#regional") ? "REGIONAL" : lower.includes("#national") ? "NATIONAL" : "OTHER";
+      const cat = lower.includes("#local") ? "LOCAL" : lower.includes("#regional") ? "REGIONAL" : lower.includes("#national") ? "NATIONAL" :
+        ["surallah","tboli","norala","banga","lake sebu"].some(k=>lower.includes(k)) ? "LOCAL" :
+        ["south cotabato","general santos","gensan","koronadal","soccsksargen"].some(k=>lower.includes(k)) ? "REGIONAL" :
+        ["president","senate","congress","duterte","philippines"].some(k=>lower.includes(k)) ? "NATIONAL" : "OTHER";
       const images: string[] = [];
       if (post.full_picture) images.push(post.full_picture);
+      if (post.attachments?.data) {
+        for (const att of post.attachments.data) {
+          const src = att.media?.image?.src;
+          if (src && !images.some((i) => normalizeUrl(i) === normalizeUrl(src))) images.push(src);
+          if (att.subattachments?.data) {
+            for (const sub of att.subattachments.data) {
+              const subSrc = sub.media?.image?.src;
+              if (subSrc && !images.some((i) => normalizeUrl(i) === normalizeUrl(subSrc))) images.push(subSrc);
+            }
+          }
+        }
+      }
       return {
         id: post.id, slug: post.id.replace("_", "-"),
         title: (excerpt || "Untitled").substring(0, 100),
         excerpt: (excerpt || "").substring(0, 160),
-        body: `<p>${bodyParts.join("</p><p>")}</p>`, category: category as Category,
+        body: `<p>${bodyParts.join("</p><p>")}</p>`, category: cat as Category,
         author: { id: "fb-page", name: "Radyo Bandera Surallah 98.1 FM", role: "Facebook Page" },
         thumbnail: post.full_picture || post.picture || "",
-        images: images.length > 1 ? images : undefined,
+        images,
         publishedAt: post.created_time, tags,
         views: post.likes?.data?.length || 0, isBreaking: lower.includes("#breaking") || lower.includes("breaking news"),
         facebookUrl: post.permalink_url,
       };
     });
+    return category ? all.filter((a) => a.category === category) : all;
   } catch { return []; }
 }
 
@@ -121,7 +141,7 @@ function bgRefresh(cacheKey: string, url: string): void {
     .finally(() => inflightRefreshes.delete(cacheKey));
 }
 
-async function fetchFresh(cacheKey: string, qs: string): Promise<{ articles: Article[]; hasMore: boolean }> {
+async function fetchFresh(cacheKey: string, qs: string, category?: Category): Promise<{ articles: Article[]; hasMore: boolean }> {
   const url = `${BASE}?${qs}`;
 
   try {
@@ -136,7 +156,7 @@ async function fetchFresh(cacheKey: string, qs: string): Promise<{ articles: Art
     }
   } catch {
     /* ponytail: fallback to direct Facebook API for local dev */
-    const fb = await fetchFacebookFallback();
+    const fb = await fetchFacebookFallback(category);
     if (fb.length > 0) { storeArticles(cacheKey, fb); return { articles: fb, hasMore: false }; }
   }
 
@@ -204,7 +224,7 @@ async function fetchFromApi(params?: {
     }
   }
 
-  return fetchFresh(cacheKey, qs);
+  return fetchFresh(cacheKey, qs, params?.category);
 }
 
 // ponytail: sync cache read — used by pages to show content on first render (no skeleton flash)

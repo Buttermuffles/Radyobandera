@@ -1,5 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
+function normalizeUrl(url) {
+  try { const u = new URL(url); return u.origin + u.pathname; } catch { return url; }
+}
+
 const FB_PAGE_ID = process.env.VITE_FACEBOOK_LOCAL_PAGE_ID;
 const FB_TOKEN = process.env.VITE_FACEBOOK_ACCESS_TOKEN;
 const API_VERSION = process.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v20.0";
@@ -29,6 +33,9 @@ function parsePosts(rawPosts) {
     if (lower.includes("#local")) category = "LOCAL";
     else if (lower.includes("#regional")) category = "REGIONAL";
     else if (lower.includes("#national")) category = "NATIONAL";
+    else if (["surallah","tboli","norala","banga","lake sebu"].some(k=>lower.includes(k))) category = "LOCAL";
+    else if (["south cotabato","general santos","gensan","koronadal","soccsksargen"].some(k=>lower.includes(k))) category = "REGIONAL";
+    else if (["president","senate","congress","duterte","philippines"].some(k=>lower.includes(k))) category = "NATIONAL";
 
     const tags = (content.match(/#(\w+)/g) || []).map((t) => t.substring(1));
     const slug = post.id.replace("_", "-");
@@ -38,11 +45,11 @@ function parsePosts(rawPosts) {
     if (post.attachments?.data) {
       for (const att of post.attachments.data) {
         const src = att.media?.image?.src;
-        if (src && !images.includes(src)) images.push(src);
+        if (src && !images.some((i) => normalizeUrl(i) === normalizeUrl(src))) images.push(src);
         if (att.subattachments?.data) {
           for (const sub of att.subattachments.data) {
             const subSrc = sub.media?.image?.src;
-            if (subSrc && !images.includes(subSrc)) images.push(subSrc);
+            if (subSrc && !images.some((i) => normalizeUrl(i) === normalizeUrl(subSrc))) images.push(subSrc);
           }
         }
       }
@@ -58,7 +65,7 @@ function parsePosts(rawPosts) {
       author_name: "Radyo Bandera Surallah 98.1 FM",
       author_role: "Facebook Page",
       thumbnail: post.full_picture || post.picture || "",
-      images: images.length > 1 ? images : undefined,
+      images,
       published_at: post.created_time,
       tags,
       views: post.likes?.data?.length || 0,
@@ -133,21 +140,6 @@ async function fetchFromSupabase({ category, search, slug, page, limit }) {
     : { articles: data || [], total: count || 0, page, hasMore: (data?.length || 0) >= limit };
 }
 
-function backgroundRefresh() {
-  // ponytail: fire-and-forget, Vercel keeps the process alive briefly after response
-  fetchFromFacebook(60).then((articles) => {
-    if (supabase && articles.length > 0) {
-      supabase
-        .from("articles")
-        .upsert(
-          articles.map((a) => ({ ...a, updated_at: new Date().toISOString() })),
-          { onConflict: "id" },
-        )
-        .catch(() => {});
-    }
-  }).catch(() => {});
-}
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -169,53 +161,65 @@ export default async function handler(req, res) {
   const params = { category, search, slug, page: pageNum, limit: limitNum };
 
   try {
-    // 1. Supabase first — fast path, ~50ms instead of 1-3s Facebook call
-    const fromSupabase = await fetchFromSupabase(params);
+    // Run Supabase and Facebook fetches concurrently (Facebook is rate-limited to 30s)
+    const [fromSupabase, fbArticles] = await Promise.all([
+      fetchFromSupabase(params),
+      (FB_PAGE_ID && FB_TOKEN && checkRateLimit("fb-direct"))
+        ? fetchFromFacebook(60).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+
+    // Merge Facebook images into Supabase data so images always show
     if (fromSupabase && fromSupabase.articles.length > 0) {
-      // Background refresh Supabase from Facebook (rate-limited to 30s)
-      if (FB_PAGE_ID && FB_TOKEN && checkRateLimit("bg-refresh")) {
-        backgroundRefresh();
+      let articles = fromSupabase.articles;
+
+      if (fbArticles && fbArticles.length > 0) {
+        // Build an id→article map from Facebook response
+        const fbMap = new Map(fbArticles.map(a => [a.id, a]));
+        articles = articles.map(a => ({
+          ...a,
+          images: (fbMap.get(a.id)?.images || a.images || []),
+        }));
+
+        // Persist Facebook data to Supabase for future requests
+        if (supabase) {
+          supabase.from("articles").upsert(
+            fbArticles.map(a => ({ ...a, updated_at: new Date().toISOString() })),
+            { onConflict: "id" },
+          ).catch(() => {});
+        }
       }
+
       res.setHeader("Cache-Control", CACHE_CONTROL);
-      res.json(fromSupabase);
+      res.json({ ...fromSupabase, articles });
       return;
     }
 
-    // 2. No Supabase data — fetch directly from Facebook
-    if (!FB_PAGE_ID || !FB_TOKEN) {
-      res.setHeader("Cache-Control", CACHE_CONTROL);
-      res.json({ articles: [], total: 0, page: pageNum, hasMore: false });
-      return;
-    }
-
-    if (!checkRateLimit("fb-direct")) {
-      const retry = await fetchFromSupabase(params);
-      if (retry && retry.articles.length > 0) {
-        res.setHeader("Cache-Control", CACHE_CONTROL);
-        res.json(retry);
-        return;
-      }
-      res.setHeader("Cache-Control", CACHE_CONTROL);
-      res.json({ articles: [], total: 0, page: pageNum, hasMore: false });
-      return;
-    }
-
-    const articles = await fetchFromFacebook(60);
-
-    // Batch upsert to Supabase (single round-trip)
-    if (supabase && articles.length > 0) {
-      supabase
-        .from("articles")
-        .upsert(
-          articles.map((a) => ({ ...a, updated_at: new Date().toISOString() })),
+    // No Supabase data — use Facebook data directly
+    if (fbArticles && fbArticles.length > 0) {
+      if (supabase) {
+        supabase.from("articles").upsert(
+          fbArticles.map(a => ({ ...a, updated_at: new Date().toISOString() })),
           { onConflict: "id" },
-        )
-        .catch(() => {});
+        ).catch(() => {});
+      }
+
+      const result = applyFilters(fbArticles, params);
+      res.setHeader("Cache-Control", CACHE_CONTROL);
+      res.json(result);
+      return;
     }
 
-    const result = applyFilters(articles, params);
+    // Fallback: serve stale Supabase data
+    const retry = await fetchFromSupabase(params);
+    if (retry && retry.articles.length > 0) {
+      res.setHeader("Cache-Control", CACHE_CONTROL);
+      res.json(retry);
+      return;
+    }
+
     res.setHeader("Cache-Control", CACHE_CONTROL);
-    res.json(result);
+    res.json({ articles: [], total: 0, page: pageNum, hasMore: false });
   } catch (error) {
     console.error("API Error:", error.message);
     try {

@@ -11,6 +11,10 @@ import { SEO } from "../components/common/SEO";
 
 const SITE_URL = "https://radyo-bandera-surallah-981-fm.vercel.app";
 
+function normalizeUrl(url: string) {
+  try { const u = new URL(url); return u.origin + u.pathname; } catch { return url; }
+}
+
 export function Article() {
   const { slug = "" } = useParams();
   const [article, setArticle] = useState<ArticleType | undefined | null>(undefined);
@@ -28,7 +32,10 @@ export function Article() {
 
   // ponytail: must keep hook count stable across renders — memo before any early return
   const galleryImages = useMemo(
-    () => (article?.images || []).filter((img) => img !== article?.thumbnail),
+    () => {
+      const thumb = normalizeUrl(article?.thumbnail || "");
+      return (article?.images || []).filter((img) => normalizeUrl(img) !== thumb);
+    },
     [article?.images, article?.thumbnail],
   );
 
@@ -44,13 +51,17 @@ export function Article() {
       | { type: "img"; src: string }
     > = [];
     let imgIdx = 0;
-    matches.forEach((para, i) => {
+    matches.forEach((para) => {
       items.push({ type: "para", html: para });
-      if ((i + 1) % 2 === 0 && imgIdx < galleryImages.length) {
+      if (imgIdx < galleryImages.length) {
         items.push({ type: "img", src: galleryImages[imgIdx] });
         imgIdx++;
       }
     });
+    while (imgIdx < galleryImages.length) {
+      items.push({ type: "img", src: galleryImages[imgIdx] });
+      imgIdx++;
+    }
     return items;
   }, [sanitizedBody, galleryImages]);
 

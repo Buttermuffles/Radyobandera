@@ -5,12 +5,11 @@ import { Play, Radio, ExternalLink } from "lucide-react";
 interface LivePlayerProps {
   videoUrl: string;
   isLive: boolean;
-  audioUrl?: string;
   embedHtml?: string;
   permalinkUrl?: string;
 }
 
-export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl }: LivePlayerProps) {
+export function LivePlayer({ videoUrl, isLive, embedHtml, permalinkUrl }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [started, setStarted] = useState(false);
 
@@ -71,7 +70,7 @@ export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl
         /* Facebook embed fallback — when HLS stream is not available */
         <div className="relative overflow-hidden rounded-xl bg-slate-950">
           <div
-            className="[&>iframe]:aspect-video [&>iframe]:w-full"
+            className="relative aspect-video w-full overflow-hidden [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full"
             dangerouslySetInnerHTML={{ __html: embedHtml }}
           />
           <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
@@ -105,16 +104,6 @@ export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl
         </div>
       )}
 
-      {/* Audio / Listen Live */}
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 backdrop-blur-sm">
-        <Radio className="h-4 w-4 shrink-0 text-brand-yellow" />
-        <span className="text-xs font-bold uppercase tracking-wider text-white/80">Listen Live</span>
-        {audioUrl ? (
-          <audio controls src={audioUrl} className="ml-auto h-8 flex-1" aria-label="Live radio stream" />
-        ) : (
-          <span className="ml-auto text-xs text-slate-500">No audio stream configured</span>
-        )}
-      </div>
     </div>
   );
 }
