@@ -138,17 +138,6 @@ export function Home({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl }: Ho
                   <p className="text-xs leading-relaxed text-slate-500 line-clamp-2">
                     {article.excerpt}
                   </p>
-                  <div className="flex items-center justify-between border-t border-slate-50 pt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      By {article.author.name}
-                    </span>
-                    <Link
-                      to={`/article/${article.slug}`}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-brand-red hover:underline"
-                    >
-                      Read More →
-                    </Link>
-                  </div>
                 </div>
               </Card>
             ))}
