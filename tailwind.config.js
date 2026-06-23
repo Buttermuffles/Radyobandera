@@ -50,12 +50,12 @@ export default {
       },
       keyframes: {
         ticker: {
-          "0%": { transform: "translateX(0)" },
+          "0%": { transform: "translateX(50%)" },
           "100%": { transform: "translateX(-50%)" },
         },
       },
       animation: {
-        ticker: "ticker 35s linear infinite",
+        ticker: "ticker 45s linear infinite",
       },
       boxShadow: {
         card: "0 1px 3px rgba(0, 0, 0, 0.1)",

@@ -9,9 +9,10 @@ interface LiveBarProps {
 export function LiveBar({ audioUrl: _audioUrl, items }: LiveBarProps) {
   const ticker = useMemo(() => {
     if (!items.length) {
-      return "Breaking updates will appear here.";
+      return "No recent posts";
     }
-    return items.map((item) => item.title).join("   •   ");
+    const joined = items.map((item) => item.title).join("   •   ");
+    return `${joined}   •   ${joined}`;
   }, [items]);
 
   return (

@@ -239,8 +239,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
 }
 
 export async function getBreakingNews(): Promise<Article[]> {
-  const { articles } = await getArticles({ limit: 30 });
-  return articles.filter((article) => article.isBreaking);
+  const { articles } = await getArticles({ limit: 60 });
+  return articles;
 }
 
 export async function getMostRead(hours = 24, limit = 4): Promise<Article[]> {

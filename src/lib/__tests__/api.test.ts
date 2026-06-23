@@ -124,10 +124,9 @@ describe("getArticleBySlug", () => {
 });
 
 describe("getBreakingNews", () => {
-  it("returns breaking news articles", async () => {
+  it("returns recent articles", async () => {
     const articles = await getBreakingNews();
     expect(articles.length).toBeGreaterThan(0);
-    articles.forEach((a) => expect(a.isBreaking).toBe(true));
   });
 });
 
