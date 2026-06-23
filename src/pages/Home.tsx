@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Skeleton } from "boneyard-js/react";
 import { getArticles, getArticlesSync } from "../lib/api";
 import type { Article } from "../types/news";
 import { HeroCarousel } from "../components/news/HeroCarousel";
@@ -18,9 +17,11 @@ interface HomeProps {
   videoUrl: string;
   isLive: boolean;
   audioUrl?: string;
+  embedHtml?: string;
+  permalinkUrl?: string;
 }
 
-export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
+export function Home({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl }: HomeProps) {
   // ponytail: seed from cache synchronously — return visitors see content on first render
   const [featured, setFeatured] = useState<Article[]>(() => getArticlesSync()?.slice(0, 5) || []);
   const [local, setLocal] = useState<Article[]>(() => {
@@ -49,8 +50,10 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
     });
   }, []);
 
+  if (loading) return <HomeSkeleton />;
+
   return (
-    <Skeleton name="home" loading={loading} fallback={<HomeSkeleton />}>
+    <>
       <SEO />
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -69,7 +72,7 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
                 {isLive ? "Live now" : "Off Air"}
               </p>
             </div>
-            <LivePlayer videoUrl={videoUrl} isLive={isLive} audioUrl={audioUrl} />
+            <LivePlayer videoUrl={videoUrl} isLive={isLive} audioUrl={audioUrl} embedHtml={embedHtml} permalinkUrl={permalinkUrl} />
           </section>
           <WeatherWidget />
         </aside>
@@ -154,6 +157,6 @@ export function Home({ videoUrl, isLive, audioUrl }: HomeProps) {
       </section>
 
     </div>
-    </Skeleton>
+    </>
   );
 }

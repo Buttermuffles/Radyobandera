@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
 
-dotenv.config();
+process.loadEnvFile();
 
 const FB_PAGE_ID = process.env.VITE_FACEBOOK_LOCAL_PAGE_ID;
 const FB_TOKEN = process.env.VITE_FACEBOOK_ACCESS_TOKEN;

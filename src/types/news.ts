@@ -33,6 +33,8 @@ export interface LiveStreamResponse {
   videoUrl: string;
   audioUrl: string;
   isLive: boolean;
+  embedHtml: string;
+  permalinkUrl: string;
 }
 
 export interface CurrentWeather {

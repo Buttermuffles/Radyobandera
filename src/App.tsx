@@ -76,7 +76,7 @@ function AppShell() {
               path="/"
               element={
                 <ErrorBoundary>
-                  <Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} />
+                  <Home videoUrl={stream?.videoUrl ?? ""} isLive={stream?.isLive ?? false} audioUrl={stream?.audioUrl ?? ""} embedHtml={stream?.embedHtml ?? ""} permalinkUrl={stream?.permalinkUrl ?? ""} />
                 </ErrorBoundary>
               }
             />

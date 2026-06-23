@@ -1,15 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { visualizer } from 'rollup-plugin-visualizer'
 import { VitePWA } from 'vite-plugin-pwa'
-import { boneyardPlugin } from 'boneyard-js/vite'
 
 export default defineConfig({
   plugins: [
     react(),
-    boneyardPlugin({
-      routes: ['/', '/general', '/category/local', '/category/regional', '/category/national'],
-    }),
     // Exclude dev-only test files from production build
     {
       name: 'exclude-dev-files',
@@ -85,12 +80,6 @@ export default defineConfig({
         ],
       },
     }),
-    visualizer({
-      filename: 'dist/stats.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-    }),
   ],
   build: {
     rollupOptions: {
@@ -99,8 +88,7 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) return 'react-vendor';
           if (id.includes('node_modules/lucide-react') || id.includes('node_modules/embla-carousel')) return 'ui-vendor';
           if (id.includes('node_modules/hls.js')) return 'media-vendor';
-          if (id.includes('node_modules/date-fns') || id.includes('node_modules/dompurify')) return 'utility-vendor';
-          if (id.includes('node_modules/zustand')) return 'state-vendor';
+          if (id.includes('node_modules/dompurify')) return 'utility-vendor';
           if (id.includes('node_modules/@sentry')) return 'monitoring-vendor';
           return undefined;
         },

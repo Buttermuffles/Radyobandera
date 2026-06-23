@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Play, Radio } from "lucide-react";
+import { Play, Radio, ExternalLink } from "lucide-react";
 
 interface LivePlayerProps {
   videoUrl: string;
   isLive: boolean;
   audioUrl?: string;
+  embedHtml?: string;
+  permalinkUrl?: string;
 }
 
-export function LivePlayer({ videoUrl, isLive, audioUrl }: LivePlayerProps) {
+export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    setStarted(false); // Reset when URL changes
+    setStarted(false);
     const video = videoRef.current;
     if (!video || !videoUrl) return;
 
@@ -32,52 +34,76 @@ export function LivePlayer({ videoUrl, isLive, audioUrl }: LivePlayerProps) {
 
   return (
     <div className="space-y-3">
-      {/* Video player */}
-      <div className="relative overflow-hidden rounded-xl bg-slate-950">
-        <video
-          ref={videoRef}
-          controls={started}
-          muted
-          className="aspect-video w-full"
-          aria-label="Live stream player"
-        />
-
-        {/* Live badge */}
-        <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
-          <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-red-500" : "bg-slate-500"}`} />
-          {isLive ? "LIVE" : "OFF AIR"}
-        </p>
-
-        {/* Play overlay */}
-        {!started && (
-          <button
-            type="button"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-[2px]"
-            onClick={() => {
-              if (!videoUrl) return;
-              void videoRef.current?.play();
-              setStarted(true);
-            }}
-            aria-label="Play live stream"
-          >
-            {videoUrl ? (
-              <>
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-red shadow-lg shadow-red-900/50 transition hover:scale-105">
-                  <Play className="h-6 w-6 fill-white text-white" />
-                </span>
-                <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-bold text-white">
-                  {isLive ? "Watch Live" : "Play Stream"}
-                </span>
-              </>
-            ) : (
-              <div className="text-center">
-                <p className="text-sm font-bold text-white/80">No stream configured</p>
-                <p className="mt-1 text-xs text-white/50">Set VITE_LIVE_VIDEO_URL in .env</p>
-              </div>
-            )}
-          </button>
-        )}
-      </div>
+      {/* Video player — HLS stream via hls.js */}
+      {videoUrl ? (
+        <div className="relative overflow-hidden rounded-xl bg-slate-950">
+          <video
+            ref={videoRef}
+            controls={started}
+            muted
+            className="aspect-video w-full"
+            aria-label="Live stream player"
+          />
+          <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
+            <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-red-500" : "bg-slate-500"}`} />
+            {isLive ? "LIVE" : "OFF AIR"}
+          </p>
+          {!started && (
+            <button
+              type="button"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-[2px]"
+              onClick={() => {
+                void videoRef.current?.play();
+                setStarted(true);
+              }}
+              aria-label="Play live stream"
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-red shadow-lg shadow-red-900/50 transition hover:scale-105">
+                <Play className="h-6 w-6 fill-white text-white" />
+              </span>
+              <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-bold text-white">
+                {isLive ? "Watch Live" : "Play Stream"}
+              </span>
+            </button>
+          )}
+        </div>
+      ) : embedHtml ? (
+        /* Facebook embed fallback — when HLS stream is not available */
+        <div className="relative overflow-hidden rounded-xl">
+          <div
+            className="[&>iframe]:aspect-video [&>iframe]:w-full"
+            dangerouslySetInnerHTML={{ __html: embedHtml }}
+          />
+          <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
+            <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-red-500" : "bg-slate-500"}`} />
+            {isLive ? "LIVE" : "OFF AIR"}
+          </p>
+          {permalinkUrl && (
+            <a
+              href={permalinkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm transition hover:bg-black/80"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Watch on Facebook
+            </a>
+          )}
+        </div>
+      ) : (
+        /* No stream available */
+        <div className="relative flex aspect-video items-center justify-center rounded-xl bg-slate-950">
+          <p className="text-center">
+            <span className="text-sm font-bold text-white/80">No live stream</span>
+            <br />
+            <span className="text-xs text-white/50">Check back when we go live</span>
+          </p>
+          <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+            OFF AIR
+          </p>
+        </div>
+      )}
 
       {/* Audio / Listen Live */}
       <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5">

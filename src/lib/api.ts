@@ -252,11 +252,50 @@ export async function getMostRead(hours = 24, limit = 4): Promise<Article[]> {
     .slice(0, limit);
 }
 
-export async function getLiveStream(): Promise<LiveStreamResponse> {
+async function liveFromFacebook(): Promise<LiveStreamResponse> {
+  const pageId = import.meta.env.VITE_FACEBOOK_LOCAL_PAGE_ID;
+  const token = import.meta.env.VITE_FACEBOOK_ACCESS_TOKEN;
+  const ver = import.meta.env.VITE_FACEBOOK_GRAPH_API_VERSION || "v20.0";
+  if (!pageId || !token) throw new Error("Facebook env vars not set");
+  const enc = encodeURIComponent;
+  const liveUrl = `https://graph.facebook.com/${ver}/${pageId}/live_videos?fields=stream_url,status,permalink_url,embed_html&access_token=${enc(token)}`;
+  const res = await fetch(liveUrl);
+  if (!res.ok) throw new Error("Facebook API error");
+  const data = await res.json();
+  const liveVideo = !data.error ? data.data?.[0] : null;
+  const permalink = liveVideo?.permalink_url || "";
+  const fullPermalink = permalink.startsWith("/") ? `https://www.facebook.com${permalink}` : permalink;
   return {
-    videoUrl: import.meta.env.VITE_LIVE_VIDEO_URL || "",
+    videoUrl: liveVideo?.stream_url || "",
     audioUrl: import.meta.env.VITE_LIVE_AUDIO_URL || "",
-    isLive: import.meta.env.VITE_IS_LIVE === "true",
+    isLive: liveVideo?.status === "LIVE",
+    embedHtml: liveVideo?.embed_html || "",
+    permalinkUrl: fullPermalink,
+  };
+}
+
+export async function getLiveStream(): Promise<LiveStreamResponse> {
+  if (import.meta.env.DEV) return liveFromFacebook();
+  try {
+    const res = await fetch("/api/live");
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        videoUrl: data.videoUrl || "",
+        audioUrl: import.meta.env.VITE_LIVE_AUDIO_URL || "",
+        isLive: !!data.isLive,
+        embedHtml: data.embedHtml || "",
+        permalinkUrl: data.permalinkUrl || "",
+      };
+    }
+  } catch { /* fall through */ }
+
+  return {
+    videoUrl: "",
+    audioUrl: import.meta.env.VITE_LIVE_AUDIO_URL || "",
+    isLive: false,
+    embedHtml: "",
+    permalinkUrl: "",
   };
 }
 

@@ -12,7 +12,7 @@ const PER_PAGE = 24;
 
 export function Search() {
   const [params] = useSearchParams();
-  const query = (params.get("q") ?? "").trim();
+  const query = (params.get("q") ?? "").trim().replace(/^#/, '');
   const [results, setResults] = useState<Article[]>(() => {
     if (query) return [];
     const cached = getArticlesSync();

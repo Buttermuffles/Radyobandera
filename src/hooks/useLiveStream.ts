@@ -8,16 +8,22 @@ export function useLiveStream() {
 
   useEffect(() => {
     let mounted = true;
+    let interval: ReturnType<typeof setInterval>;
 
-    getLiveStream().then((data) => {
+    async function fetchStream() {
+      const data = await getLiveStream();
       if (mounted) {
         setStream(data);
         setLoading(false);
       }
-    });
+    }
+
+    fetchStream();
+    interval = setInterval(fetchStream, 60000);
 
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
 

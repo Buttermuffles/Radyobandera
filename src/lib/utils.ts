@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -7,7 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(isoDate: string): string {
-  return format(new Date(isoDate), "MMM d, yyyy • h:mm a");
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit",
+  }).format(new Date(isoDate));
 }
 
 export function readingMinutes(text: string): number {

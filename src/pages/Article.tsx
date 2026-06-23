@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Skeleton } from "boneyard-js/react";
 import DOMPurify from "dompurify";
 import { getArticleBySlug } from "../lib/api";
 import type { Article as ArticleType } from "../types/news";
@@ -60,11 +59,7 @@ export function Article() {
   }
 
   if (!article) {
-    return (
-      <Skeleton name="article" loading={true} fallback={<ArticleSkeleton />}>
-        <SEO />
-      </Skeleton>
-    );
+    return <ArticleSkeleton />;
   }
 
   const a = article;
@@ -72,7 +67,7 @@ export function Article() {
   const fbShareUrl = a.facebookUrl || `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`;
 
   return (
-    <Skeleton name="article" loading={false} fallback={<ArticleSkeleton />}>
+    <>
       <SEO
         title={a.title}
         description={a.excerpt}
@@ -193,6 +188,6 @@ export function Article() {
       {selectedImage && (
         <ImageLightbox src={selectedImage} alt={a.title} onClose={() => setSelectedImage(null)} />
       )}
-    </Skeleton>
+    </>
   );
 }
