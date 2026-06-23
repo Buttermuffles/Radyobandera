@@ -65,8 +65,8 @@ export function Home({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl }: Ho
         </div>
 
         <aside className="hidden space-y-4 lg:block">
-          <section className="rounded-xl border border-white/60 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:rounded-[1.5rem] sm:p-4">
-            <div className="mb-2 flex items-center justify-between sm:mb-3">
+          <section id="watch-live" className="rounded-xl border border-white/60 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:rounded-[1.5rem] overflow-hidden">
+            <div className="flex items-center justify-between px-3 pt-3 sm:px-4 sm:pt-4">
               <h2 className="font-heading text-lg font-black text-brand-red sm:text-xl">WATCH LIVE</h2>
               <p className="rounded-full bg-brand-red/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-red sm:px-3 sm:py-1 sm:text-xs">
                 {isLive ? "Live now" : "Off Air"}

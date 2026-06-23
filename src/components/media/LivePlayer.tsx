@@ -69,7 +69,7 @@ export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl
         </div>
       ) : embedHtml ? (
         /* Facebook embed fallback — when HLS stream is not available */
-        <div className="relative overflow-hidden rounded-xl">
+        <div className="relative overflow-hidden rounded-xl bg-slate-950">
           <div
             className="[&>iframe]:aspect-video [&>iframe]:w-full"
             dangerouslySetInnerHTML={{ __html: embedHtml }}
@@ -92,12 +92,12 @@ export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl
         </div>
       ) : (
         /* No stream available */
-        <div className="relative flex aspect-video items-center justify-center rounded-xl bg-slate-950">
-          <p className="text-center">
-            <span className="text-sm font-bold text-white/80">No live stream</span>
-            <br />
-            <span className="text-xs text-white/50">Check back when we go live</span>
-          </p>
+        <div className="relative flex aspect-video items-center justify-center rounded-xl bg-gradient-to-b from-slate-900 to-slate-950">
+          <div className="text-center">
+            <Radio className="mx-auto mb-2 h-8 w-8 text-slate-600" aria-hidden="true" />
+            <p className="text-sm font-bold text-white/60">No live stream</p>
+            <p className="text-xs text-white/40">Check back when we go live</p>
+          </div>
           <p className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold tracking-wide text-white backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
             OFF AIR
@@ -106,7 +106,7 @@ export function LivePlayer({ videoUrl, isLive, audioUrl, embedHtml, permalinkUrl
       )}
 
       {/* Audio / Listen Live */}
-      <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5">
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 backdrop-blur-sm">
         <Radio className="h-4 w-4 shrink-0 text-brand-yellow" />
         <span className="text-xs font-bold uppercase tracking-wider text-white/80">Listen Live</span>
         {audioUrl ? (
