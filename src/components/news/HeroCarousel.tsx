@@ -48,11 +48,11 @@ export function HeroCarousel({ articles }: HeroCarouselProps) {
   return (
     <section
       aria-label="Top stories carousel"
-      className="space-y-2 rounded-xl border border-white/70 bg-white/70 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:rounded-[2rem]"
+      className="space-y-3 rounded-xl border border-white/70 bg-white/70 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:space-y-3 sm:rounded-[2rem] sm:p-4"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="overflow-hidden rounded-xl sm:rounded-[2rem]" ref={emblaRef}>
+      <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
           {articles.map((article) => (
             <div className="min-w-0 flex-[0_0_100%]" key={article.id}>
